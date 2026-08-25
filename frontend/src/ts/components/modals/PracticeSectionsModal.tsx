@@ -73,6 +73,27 @@ export function PracticeSectionsModal(props: {
   createEffect(() => {
     void (async () => {
       try {
+        // Attempt to fetch from Cloudflare Serverless Function (/api/practice-texts)
+        try {
+          const controller = new AbortController();
+          const timer = setTimeout(() => controller.abort(), 3000);
+          const apiRes = await fetch("/api/practice-texts", {
+            signal: controller.signal,
+          });
+          clearTimeout(timer);
+          if (apiRes.ok) {
+            const apiData = (await apiRes.json()) as PracticeTextEntry[];
+            if (Array.isArray(apiData) && apiData.length > 0) {
+              setTexts(apiData);
+              setLoading(false);
+              return;
+            }
+          }
+        } catch {
+          // Ignore and proceed to static fallback
+        }
+
+        // Fallback to static practice_texts.json
         const res = await fetch("/practice/practice_texts.json");
         if (res.ok) {
           const data = (await res.json()) as PracticeTextEntry[];
