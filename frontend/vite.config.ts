@@ -353,14 +353,7 @@ export default defineConfig(({ mode }): UserConfig => {
       },
     },
     resolve: {
-      alias: isDevelopment
-        ? []
-        : [
-            {
-              find: /\/constants\/firebase-config$/,
-              replacement: "/constants/firebase-config-live",
-            },
-          ],
+      alias: [],
     },
     clearScreen: false,
     root: "src",
