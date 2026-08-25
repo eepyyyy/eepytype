@@ -549,7 +549,7 @@ export function PracticeSectionsModal(props: {
                           </Show>
                           <span>•</span>
                           <span class="truncate">
-                            {item.author !== "" ? item.author : item.source}
+                            {item.author || item.source || ""}
                           </span>
                         </div>
 

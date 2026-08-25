@@ -48,8 +48,9 @@ export function TrainingModal(): JSXElement {
         {/* Header Description */}
         <div class="flex flex-wrap items-center justify-between gap-2 border-b border-sub-alt pb-3">
           <p class="text-xs text-sub">
-            Master touch typing with progressive drills inspired by Typing.com:
-            Home Row, multi-row reaches, numbers, code syntax, and endurance.
+            Master touch typing with Ruth Ben&apos;Ary&apos;s 10-Lesson Course:
+            Home Row, Diagonal Reaches, Alphabet, Capitals, Numerals, Speed &
+            Letters.
           </p>
           <span class="rounded-full bg-sub-alt px-3 py-1 text-xs font-semibold text-main">
             {TRAINING_CURRICULUM.length} Units Available
@@ -57,7 +58,7 @@ export function TrainingModal(): JSXElement {
         </div>
 
         {/* Unit Selection Tabs */}
-        <div class="custom-scroll flex gap-2 overflow-x-auto pb-1.5 sm:grid sm:grid-cols-4 md:grid-cols-7">
+        <div class="custom-scroll flex gap-2 overflow-x-auto pb-1.5 sm:grid sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-6">
           <For each={TRAINING_CURRICULUM}>
             {(unit) => {
               const isSelected = () => unit.unitId === selectedUnitId();
