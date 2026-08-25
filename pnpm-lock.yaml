@@ -120,8 +120,8 @@ importers:
         specifier: 2.3.0
         version: 2.3.0
       date-fns:
-        specifier: 3.6.0
-        version: 3.6.0
+        specifier: 4.4.0
+        version: 4.4.0
       dotenv:
         specifier: 17.4.2
         version: 17.4.2
@@ -359,7 +359,7 @@ importers:
         version: 3.7.1
       chartjs-adapter-date-fns:
         specifier: 3.0.0
-        version: 3.0.0(chart.js@3.7.1)(date-fns@3.6.0)
+        version: 3.0.0(chart.js@3.7.1)(date-fns@4.4.0)
       chartjs-plugin-annotation:
         specifier: 2.2.1
         version: 2.2.1(chart.js@3.7.1)
@@ -373,8 +373,8 @@ importers:
         specifier: 1.0.8
         version: 1.0.8
       date-fns:
-        specifier: 3.6.0
-        version: 3.6.0
+        specifier: 4.4.0
+        version: 4.4.0
       disposable-email-domains-js:
         specifier: ^1.0.35
         version: 1.16.0
@@ -6417,8 +6417,8 @@ packages:
     resolution: {integrity: sha512-fnULvOpxnC5/Vg3NCiWelDsLiUc9bRwAPs/+LfTLNvetFCtCTN+yQz15C/fs4AwX1R9K5GLtLfn8QW+dWisaAw==}
     engines: {node: '>=0.11'}
 
-  date-fns@3.6.0:
-    resolution: {integrity: sha512-fRHTG8g/Gif+kSh50gaGEdToemgfj74aRX3swtiouboip5JDLAyDE9F11nHMIcvOaXeOC6D7SpNhi7uFyB7Uww==}
+  date-fns@4.4.0:
+    resolution: {integrity: sha512-+1UMbeh68lH1SegH83CGWwpb6OHHbpSgr3+s5Eww5M4CAgswBpoWS0AjTOfEJ33HiYKz1hdj/KTFprzXHmq/6w==}
 
   dayjs@1.11.21:
     resolution: {integrity: sha512-98IT+HOahAisibz/yjKbzuOBwYcjJ7BCLPzARyHiyEBmRz4fatF+KPJszEHXsGYjUG234aH/cOjW1wwTbKUZlA==}
@@ -6921,6 +6921,7 @@ packages:
   eslint@9.39.1:
     resolution: {integrity: sha512-BhHmn2yNOFA9H9JmmIVKJmd288g9hrVRDkdoIgRCRuSySRUHH7r/DI6aAXW9T1WwUuY3DFgrcaqB+deURBLR5g==}
     engines: {node: ^18.18.0 || ^20.9.0 || >=21.1.0}
+    deprecated: This version is no longer supported. Please see https://eslint.org/version-support for other options.
     hasBin: true
     peerDependencies:
       jiti: '*'
@@ -17272,10 +17273,10 @@ snapshots:
 
   chart.js@3.7.1: {}
 
-  chartjs-adapter-date-fns@3.0.0(chart.js@3.7.1)(date-fns@3.6.0):
+  chartjs-adapter-date-fns@3.0.0(chart.js@3.7.1)(date-fns@4.4.0):
     dependencies:
       chart.js: 3.7.1
-      date-fns: 3.6.0
+      date-fns: 4.4.0
 
   chartjs-plugin-annotation@2.2.1(chart.js@3.7.1):
     dependencies:
@@ -17795,7 +17796,7 @@ snapshots:
     dependencies:
       '@babel/runtime': 7.28.4
 
-  date-fns@3.6.0: {}
+  date-fns@4.4.0: {}
 
   dayjs@1.11.21: {}
 
