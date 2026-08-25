@@ -1,3 +1,10 @@
+# Environment & Secrets
+.env
+*.env
+*.env.*
+atlas-credentials.env
+.env.local
+
 # Logs
 logs
 *.log

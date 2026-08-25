@@ -58,6 +58,7 @@
     "check-assets-others": "turbo check-assets --filter @monkeytype/frontend  -- others",
     "knip": "knip",
     "scrape-practice": "python scripts/scrape_practice_texts.py",
+    "sync-mongo": "python scripts/mongo_sync.py",
     "update-oxc": "pnpm up -D -r oxlint@latest oxfmt@latest oxlint-tsgolint@latest"
   },
   "devDependencies": {
