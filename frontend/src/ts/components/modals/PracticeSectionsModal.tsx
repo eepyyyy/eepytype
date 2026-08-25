@@ -72,37 +72,79 @@ export function PracticeSectionsModal(props: {
 
   createEffect(() => {
     void (async () => {
+      // 1. Instant 0ms load from localStorage cache if available
+      let cachedEtag: string | null = null;
       try {
-        // Attempt to fetch from Cloudflare Serverless Function (/api/practice-texts)
-        try {
-          const controller = new AbortController();
-          const timer = setTimeout(() => controller.abort(), 3000);
-          const apiRes = await fetch("/api/practice-texts", {
-            signal: controller.signal,
-          });
-          clearTimeout(timer);
-          if (apiRes.ok) {
-            const apiData = (await apiRes.json()) as PracticeTextEntry[];
-            if (Array.isArray(apiData) && apiData.length > 0) {
-              setTexts(apiData);
-              setLoading(false);
-              return;
-            }
+        const cached = localStorage.getItem("eepytype_practice_cache");
+        cachedEtag = localStorage.getItem("eepytype_practice_etag");
+        if (typeof cached === "string" && cached !== "") {
+          const parsed = JSON.parse(cached) as PracticeTextEntry[];
+          if (Array.isArray(parsed) && parsed.length > 0) {
+            setTexts(parsed);
+            setLoading(false);
           }
-        } catch {
-          // Ignore and proceed to static fallback
+        }
+      } catch {
+        // Ignore localStorage error
+      }
+
+      // 2. Check for updates with ETag (304 Not Modified check)
+      try {
+        const headers: Record<string, string> = {};
+        if (typeof cachedEtag === "string" && cachedEtag !== "") {
+          headers["If-None-Match"] = cachedEtag;
         }
 
-        // Fallback to static practice_texts.json
-        const res = await fetch("/practice/practice_texts.json");
-        if (res.ok) {
-          const data = (await res.json()) as PracticeTextEntry[];
-          setTexts(data);
+        const controller = new AbortController();
+        const timer = setTimeout(() => controller.abort(), 4000);
+        const apiRes = await fetch("/api/practice-texts", {
+          headers,
+          signal: controller.signal,
+        });
+        clearTimeout(timer);
+
+        if (apiRes.status === 304) {
+          // Already up to date! Nothing changed in DB.
+          return;
         }
-      } catch (e) {
-        console.error("Failed to load practice texts", e);
-      } finally {
-        setLoading(false);
+
+        if (apiRes.ok) {
+          const newEtag = apiRes.headers.get("ETag");
+          const apiData = (await apiRes.json()) as PracticeTextEntry[];
+          if (Array.isArray(apiData) && apiData.length > 0) {
+            setTexts(apiData);
+            try {
+              localStorage.setItem(
+                "eepytype_practice_cache",
+                JSON.stringify(apiData),
+              );
+              if (typeof newEtag === "string" && newEtag !== "") {
+                localStorage.setItem("eepytype_practice_etag", newEtag);
+              }
+            } catch {
+              // Ignore quota error
+            }
+            setLoading(false);
+            return;
+          }
+        }
+      } catch {
+        // Ignore network / worker error
+      }
+
+      // 3. Fallback to static practice_texts.json if no cache
+      if (texts().length === 0) {
+        try {
+          const res = await fetch("/practice/practice_texts.json");
+          if (res.ok) {
+            const data = (await res.json()) as PracticeTextEntry[];
+            setTexts(data);
+          }
+        } catch (e) {
+          console.error("Failed to load practice texts", e);
+        } finally {
+          setLoading(false);
+        }
       }
     })();
   });
