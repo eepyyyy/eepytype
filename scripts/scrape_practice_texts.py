@@ -10,6 +10,7 @@ Usage:
   python scripts/scrape_practice_texts.py --wiki "Stoicism" --category philosophy
   python scripts/scrape_practice_texts.py --file path/to/document.txt --title "My Custom Text" --category engineering
   python scripts/scrape_practice_texts.py --bulk-wiki-preset
+  python scripts/scrape_practice_texts.py --catalog
 """
 
 import argparse
@@ -20,13 +21,15 @@ import urllib.request
 import urllib.parse
 from typing import Dict, List, Any
 
+ROOT_DIR = os.path.dirname(os.path.dirname(__file__))
 PRACTICE_FILE_PATH = os.path.join(
-    os.path.dirname(os.path.dirname(__file__)),
+    ROOT_DIR,
     "frontend",
     "static",
     "practice",
     "practice_texts.json"
 )
+CATALOG_FILE_PATH = os.path.join(ROOT_DIR, "PRACTICE_CATALOG.md")
 
 def calculate_difficulty(text: str) -> Dict[str, Any]:
     words = re.findall(r"\b\w+\b", text)
@@ -44,10 +47,6 @@ def calculate_difficulty(text: str) -> Dict[str, Any]:
     avg_len = sum(len(w) for w in words) / word_count
     
     # Difficulty scoring based on avg word length and complex terminology
-    # Easy: avg length < 5.0
-    # Medium: avg length 5.0 - 5.7
-    # Hard: avg length 5.7 - 6.2
-    # Expert: avg length >= 6.2 or heavy punctuation
     if avg_len < 5.0:
         difficulty = "easy"
     elif avg_len < 5.7:
@@ -146,6 +145,11 @@ BULK_PRESETS = [
     ("Mitochondrion", "science"),
     ("Higgs boson", "science"),
     ("Superconductivity", "science"),
+    ("Plate tectonics", "science"),
+    ("Quantum chromodynamics", "science"),
+    ("Neuroscience", "science"),
+    ("Biochemistry", "science"),
+    ("Hubble Space Telescope", "science"),
     # Philosophy
     ("Stoicism", "philosophy"),
     ("Utilitarianism", "philosophy"),
@@ -160,6 +164,9 @@ BULK_PRESETS = [
     ("Phenomenology (philosophy)", "philosophy"),
     ("Mind–body dualism", "philosophy"),
     ("Virtue ethics", "philosophy"),
+    ("Deontology", "philosophy"),
+    ("Rationalism", "philosophy"),
+    ("Empiricism", "philosophy"),
     # Engineering
     ("Gas turbine", "engineering"),
     ("Aerodynamics", "engineering"),
@@ -169,6 +176,11 @@ BULK_PRESETS = [
     ("Fluid dynamics", "engineering"),
     ("Heat transfer", "engineering"),
     ("Turbopump", "engineering"),
+    ("Robotics", "engineering"),
+    ("Materials science", "engineering"),
+    ("Chemical engineering", "engineering"),
+    ("Civil engineering", "engineering"),
+    ("Electric motor", "engineering"),
     # Technology
     ("Public-key cryptography", "technology"),
     ("Distributed computing", "technology"),
@@ -180,6 +192,11 @@ BULK_PRESETS = [
     ("Cryptographic hash function", "technology"),
     ("Turing machine", "technology"),
     ("Relational database", "technology"),
+    ("Quantum computing", "technology"),
+    ("Cloud computing", "technology"),
+    ("Cybersecurity", "technology"),
+    ("Computer graphics", "technology"),
+    ("Blockchain", "technology"),
     # History
     ("Renaissance", "history"),
     ("Industrial Revolution", "history"),
@@ -187,21 +204,105 @@ BULK_PRESETS = [
     ("Age of Enlightenment", "history"),
     ("Space Race", "history"),
     ("Silk Road", "history"),
+    ("Ancient Egypt", "history"),
+    ("Ancient Greece", "history"),
+    ("Roman Empire", "history"),
+    ("Byzantine Empire", "history"),
+    ("Middle Ages", "history"),
     # Literature
     ("Romanticism", "literature"),
     ("Modernist literature", "literature"),
     ("Magical realism", "literature"),
     ("Greek tragedy", "literature"),
+    ("Gothic fiction", "literature"),
+    ("Epic poetry", "literature"),
+    ("Satire", "literature"),
     # Medicine
     ("Neuroplasticity", "medicine"),
     ("Immune system", "medicine"),
     ("Cardiovascular system", "medicine"),
     ("Pharmacology", "medicine"),
     ("Action potential", "medicine"),
+    ("Genetics", "medicine"),
+    ("Virology", "medicine"),
+    ("Pathology", "medicine"),
+    ("Human anatomy", "medicine"),
+    ("Epidemiology", "medicine"),
+    # Law & Civics
+    ("Rule of law", "law"),
+    ("Constitutional law", "law"),
+    ("Separation of powers", "law"),
+    ("Universal Declaration of Human Rights", "law"),
+    ("Common law", "law"),
+    ("Jurisprudence", "law"),
+    # Nature & Earth
+    ("Marine biology", "nature"),
+    ("Ecosystem", "nature"),
+    ("Biodiversity", "nature"),
+    ("Climate change", "nature"),
+    ("Astronomy", "nature"),
+    ("Coral reef", "nature"),
+    # Art & Culture
+    ("Art history", "art"),
+    ("Music theory", "art"),
+    ("Impressionism", "art"),
+    ("Architecture", "art"),
+    ("Aesthetics", "art"),
 ]
 
+def generate_catalog_markdown() -> None:
+    texts = load_existing_texts()
+    if not texts:
+        print("No texts found to catalog.")
+        return
+
+    # Group by category
+    by_cat: Dict[str, List[Dict[str, Any]]] = {}
+    for t in texts:
+        cat = t.get("category", "general")
+        by_cat.setdefault(cat, []).append(t)
+
+    lines = [
+        "# Eepytype Practice Library Catalog",
+        "",
+        f"Total Curated Practice Sections: **{len(texts)}**",
+        "",
+        "| Category | Total Texts | Topics Preview |",
+        "| :--- | :---: | :--- |"
+    ]
+
+    for cat, items in sorted(by_cat.items()):
+        titles = ", ".join(i["title"] for i in items[:4])
+        if len(items) > 4:
+            titles += f", +{len(items)-4} more"
+        lines.append(f"| **{cat.capitalize()}** | {len(items)} | {titles} |")
+
+    lines.append("")
+    lines.append("---")
+    lines.append("")
+
+    for cat, items in sorted(by_cat.items()):
+        lines.append(f"## {cat.capitalize()} ({len(items)} entries)")
+        lines.append("")
+        lines.append("| Title | Difficulty | Words | Chars | Author / Source | Preview Excerpt |")
+        lines.append("| :--- | :---: | :---: | :---: | :--- | :--- |")
+        for item in sorted(items, key=lambda x: x["title"]):
+            title = item.get("title", "Untitled")
+            diff = item.get("difficulty", "medium").upper()
+            diff_badge = {"EASY": "🟢 Easy", "MEDIUM": "🟡 Medium", "HARD": "🔴 Hard", "EXPERT": "🟣 Expert"}.get(diff, diff)
+            wc = item.get("wordCount", 0)
+            cc = item.get("charCount", 0)
+            src = item.get("author") or item.get("source") or "Curated"
+            preview = (item.get("text", "")[:100] + "...").replace("|", "-")
+            lines.append(f"| **{title}** | {diff_badge} | {wc}w | {cc}c | {src} | {preview} |")
+        lines.append("")
+
+    with open(CATALOG_FILE_PATH, "w", encoding="utf-8") as f:
+        f.write("\n".join(lines))
+    print(f"Generated comprehensive practice catalog: {CATALOG_FILE_PATH} ({len(texts)} sections)")
+
 def run_bulk_wiki_scraper() -> None:
-    print("Running bulk Wikipedia practice text scraper...")
+    print("Running bulk Wikipedia practice text scraper across all genres...")
     for title, cat in BULK_PRESETS:
         try:
             res = fetch_wikipedia_extract(title)
@@ -215,20 +316,24 @@ def run_bulk_wiki_scraper() -> None:
                 )
         except Exception as e:
             print(f"Error fetching '{title}': {e}")
+    generate_catalog_markdown()
 
 def main():
     parser = argparse.ArgumentParser(description="Scrape and ingest practice texts for eepytype")
     parser.add_argument("--wiki", type=str, help="Wikipedia article title to fetch")
-    parser.add_argument("--category", type=str, default="general", help="Category (science, philosophy, engineering, technology, literature, history, medicine)")
+    parser.add_argument("--category", type=str, default="general", help="Category (science, philosophy, engineering, technology, literature, history, medicine, law, nature, art)")
     parser.add_argument("--file", type=str, help="Path to local text file to ingest")
     parser.add_argument("--title", type=str, help="Title for local file ingestion")
     parser.add_argument("--author", type=str, default="", help="Author name")
     parser.add_argument("--source", type=str, default="", help="Source citation")
-    parser.add_argument("--bulk-wiki-preset", action="store_true", help="Scrape curated Wikipedia topics across science, philosophy, tech, history")
+    parser.add_argument("--bulk-wiki-preset", action="store_true", help="Scrape curated Wikipedia topics across all genres")
+    parser.add_argument("--catalog", action="store_true", help="Generate PRACTICE_CATALOG.md from current library")
 
     args = parser.parse_args()
 
-    if args.bulk_wiki_preset:
+    if args.catalog:
+        generate_catalog_markdown()
+    elif args.bulk_wiki_preset:
         run_bulk_wiki_scraper()
     elif args.wiki:
         try:
@@ -240,6 +345,7 @@ def main():
                 author=args.author or res["author"],
                 source=args.source or res["source"]
             )
+            generate_catalog_markdown()
         except Exception as e:
             print(f"Failed to fetch Wikipedia article '{args.wiki}': {e}")
     elif args.file:
@@ -256,6 +362,7 @@ def main():
             author=args.author,
             source=args.source or os.path.basename(args.file)
         )
+        generate_catalog_markdown()
     else:
         parser.print_help()
 

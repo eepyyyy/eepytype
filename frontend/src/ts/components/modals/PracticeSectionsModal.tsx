@@ -1,15 +1,29 @@
-import { createEffect, createSignal, For, JSXElement, Show } from "solid-js";
+import {
+  createEffect,
+  createSignal,
+  For,
+  JSXElement,
+  Setter,
+  Show,
+} from "solid-js";
 
 import { setConfig } from "../../config/setters";
 import { restartTestEvent } from "../../events/test";
 import { setCustomTextIndicator } from "../../states/core";
-import { hideModal } from "../../states/modals";
+import { hideModal, showModal } from "../../states/modals";
 import * as CustomText from "../../test/custom-text";
 import { cn } from "../../utils/cn";
 import { AnimatedModal } from "../common/AnimatedModal";
 import { Button } from "../common/Button";
 import { Fa } from "../common/Fa";
 import { Separator } from "../common/Separator";
+
+type CustomTextIncomingData =
+  | ({ set?: boolean; long?: boolean } & (
+      | { text: string; splitText?: never }
+      | { text?: never; splitText: string[] }
+    ))
+  | null;
 
 export type PracticeTextEntry = {
   id: string;
@@ -33,6 +47,9 @@ const categories = [
   { id: "literature", label: "Literature", icon: "fa-book" as const },
   { id: "history", label: "History", icon: "fa-landmark" as const },
   { id: "medicine", label: "Medicine", icon: "fa-heartbeat" as const },
+  { id: "law", label: "Law & Civics", icon: "fa-balance-scale" as const },
+  { id: "nature", label: "Nature & Earth", icon: "fa-leaf" as const },
+  { id: "art", label: "Art & Culture", icon: "fa-palette" as const },
 ];
 
 const difficulties = [
@@ -43,7 +60,9 @@ const difficulties = [
   { id: "expert", label: "Expert" },
 ];
 
-export function PracticeSectionsModal(): JSXElement {
+export function PracticeSectionsModal(props: {
+  setChainedData?: Setter<CustomTextIncomingData>;
+}): JSXElement {
   const [texts, setTexts] = createSignal<PracticeTextEntry[]>([]);
   const [selectedCategory, setSelectedCategory] = createSignal<string>("all");
   const [selectedDifficulty, setSelectedDifficulty] =
@@ -109,6 +128,20 @@ export function PracticeSectionsModal(): JSXElement {
     hideModal("PracticeSections");
   };
 
+  const handleLoadAndEdit = (item: PracticeTextEntry): void => {
+    CustomText.setCustomText(item.title, item.text, true);
+    setCustomTextIndicator({
+      name: item.title,
+      isLong: true,
+    });
+    if (props.setChainedData) {
+      props.setChainedData({ text: item.text, long: true });
+      hideModal("PracticeSections");
+    } else {
+      showModal("CustomText");
+    }
+  };
+
   const getDifficultyBadge = (
     diff: PracticeTextEntry["difficulty"],
   ): JSXElement => {
@@ -151,8 +184,8 @@ export function PracticeSectionsModal(): JSXElement {
         <div class="flex flex-wrap items-center justify-between gap-2 border-b border-sub-alt pb-3">
           <p class="text-xs text-sub">
             Explore curated practice sections across Science, Philosophy,
-            Engineering, Literature, and History with difficulty ratings and
-            word counts.
+            Engineering, Tech, Literature, History, Medicine, Law, Nature, and
+            Art.
           </p>
           <span class="rounded-full bg-sub-alt px-3 py-1 text-xs font-medium text-sub">
             {filteredTexts().length} texts
@@ -293,13 +326,22 @@ export function PracticeSectionsModal(): JSXElement {
                           </span>
                         </div>
 
-                        <Button
-                          variant="button"
-                          class="rounded-lg px-3 py-1 text-xs font-semibold"
-                          text="Practice"
-                          fa={{ icon: "fa-play" }}
-                          onClick={() => selectPracticeText(item)}
-                        />
+                        <div class="flex items-center gap-2">
+                          <Button
+                            variant="text"
+                            class="rounded-lg px-2.5 py-1 text-xs hover:bg-sub-alt"
+                            text="edit & shuffle"
+                            fa={{ icon: "fa-sliders-h" }}
+                            onClick={() => handleLoadAndEdit(item)}
+                          />
+                          <Button
+                            variant="button"
+                            class="rounded-lg px-3 py-1 text-xs font-semibold"
+                            text="practice"
+                            fa={{ icon: "fa-play" }}
+                            onClick={() => selectPracticeText(item)}
+                          />
+                        </div>
                       </div>
                     </div>
                   )}
