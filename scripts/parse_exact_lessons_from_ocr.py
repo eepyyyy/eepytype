@@ -1,0 +1,456 @@
+import json
+import re
+from pathlib import Path
+
+ocr_path = Path("d:/eepytype/touch_typing_full_ocr.md")
+with open(ocr_path, "r", encoding="utf-8") as f:
+    full_text = f.read()
+
+pages = full_text.split("<!-- PAGE ")
+
+def get_page_text(p_num):
+    for p in pages:
+        if p.startswith(f"{p_num} -->"):
+            # strip header
+            return p.split("-->", 1)[1].strip()
+    return ""
+
+def clean_drill_text(raw):
+    lines = raw.split("\n")
+    cleaned = []
+    for l in lines:
+        l = l.strip()
+        if not l or l.startswith("#") or l.startswith("![") or l.startswith("---"):
+            continue
+        cleaned.append(l)
+    return " ".join(cleaned)
+
+# Complete 10 Lessons with Preliminary Setup
+curriculum = {
+    "title": "Touch Typing in 10 Lessons (The Famous Ben'Ary Method)",
+    "author": "Ruth Ben'Ary",
+    "foreword": "Dr. Hamden L. Forkner (Teachers College, Columbia University)",
+    "publisher": "Grosset & Dunlap / Franklin Watts, Inc.",
+    "coreMethod": "The Basic Combinations Method (Horizontal, Diagonal, Alphabetic & Speed Drills)",
+    "units": [
+        {
+            "unitNumber": 0,
+            "unitId": "unit-0",
+            "title": "Preliminary Instructions & Typewriter Mechanics",
+            "subtitle": "Anatomy, posture, home row seating & touch orientation",
+            "pageRange": "Pages 5-11",
+            "overview": "Touch typing is typing by touch rather than by sight. Every finger has a designated home position on the home row (second row from bottom). The home row is: Left hand A S D F, Right hand J K L ;. Thumbs control the Space bar. Position at the machine: sit erect directly facing the center of the typewriter, feet flat on the floor, elbows close to the body, wrists floating naturally without resting on the frame, and fingers curved like a pianist.",
+            "lessons": [
+                {
+                    "lessonId": "0.1",
+                    "lessonNumber": "0.1",
+                    "title": "Definitions of Major Functional Parts",
+                    "instructions": "Learn the core mechanics: 1. Keyboard (Letter & figure keys), 2. Space Bar (thumb operated), 3. Shift Keys & Shift Lock (for capitals & upper symbols), 4. Backspace, 5. Cylinder / Platen & Cylinder Knobs, 6. Carriage Release, 7. Line-Space Lever (for returning carriage and advancing lines), 8. Paper Guide & Margin Stops.",
+                    "drillText": "asdf jkl; asdf jkl; fj dk sl a; asdf jkl; fj dk sl a; asdf jkl; fj dk sl a;",
+                    "objectives": ["Identify machine controls", "Ergonomic seating", "Fingers curved over home row"],
+                    "masteryCriteria": "Locate home keys by touch without looking"
+                },
+                {
+                    "lessonId": "0.2",
+                    "lessonNumber": "0.2",
+                    "title": "Finding Home Row by Touch",
+                    "instructions": "Pass lightly over the space bar without pressing it down, let your fingers come to rest on the bottom row of keys, then move slowly up to the second row (home row). Without looking down, place: Left hand little finger on A, ring on S, middle on D, index on F; Right hand index on J, middle on K, ring on L, little finger on ;. Keep thumbs hovering over the space bar.",
+                    "drillText": "a s d f j k l ; asdf jkl; asdf jkl; a s d f j k l ; asdf jkl;",
+                    "objectives": ["Blind tactile seating", "Independent finger placement", "Immediate return to home row"],
+                    "masteryCriteria": "100% blind placement on home keys"
+                }
+            ]
+        },
+        {
+            "unitNumber": 1,
+            "unitId": "unit-1",
+            "title": "Basic Horizontal Combinations",
+            "subtitle": "Home row foundations: a-s-d-f-g and ;-l-k-j-h, alternating & scrambled",
+            "pageRange": "Pages 12-16",
+            "overview": "The foundational exercise of the Basic Combinations Method. Strike each key with a crisp, staccato snap and return immediately to the home position. Follow the dictation rhythm.",
+            "lessons": [
+                {
+                    "lessonId": "1.1",
+                    "lessonNumber": "1.1",
+                    "title": "Left Hand Horizontal Combination (a-s-d-f-g)",
+                    "instructions": "With the little finger of the left hand, strike a. With the next finger, strike s. With the next finger, strike d. With the index finger, strike f. Now extend the 'f' finger to the spare key next to it, strike g, and snap back to f. Space with thumb.",
+                    "drillText": "asdfg asdfg asdfg asdfg asdfg asdfg asdfg asdfg asdfg asdfg asdfg asdfg",
+                    "objectives": ["Sharp finger stroke", "Snap index finger back from g to f", "Hold steady rhythm"],
+                    "masteryCriteria": "99% accuracy on left hand sweep"
+                },
+                {
+                    "lessonId": "1.2",
+                    "lessonNumber": "1.2",
+                    "title": "Right Hand Horizontal Combination (;-l-k-j-h)",
+                    "instructions": "With the little finger of the right hand, strike ; (semi). With the next finger, strike l. With the next, strike k. With index finger, strike j. Extend the 'j' finger to the spare key next to it, strike h, and snap back to j. Space with thumb.",
+                    "drillText": ";lkjh ;lkjh ;lkjh ;lkjh ;lkjh ;lkjh ;lkjh ;lkjh ;lkjh ;lkjh ;lkjh ;lkjh",
+                    "objectives": ["Right pinky precision on semicolon", "Snap index finger back from h to j", "Even cadence"],
+                    "masteryCriteria": "99% accuracy on right hand sweep"
+                },
+                {
+                    "lessonId": "1.3",
+                    "lessonNumber": "1.3",
+                    "title": "Alternating Hands Combination (asdfg ;lkjh)",
+                    "instructions": "Alternate left hand then right hand with a single space bar tap between groups, saying aloud: asdfg space ;lkjh space asdfg space ;lkjh.",
+                    "drillText": "asdfg ;lkjh asdfg ;lkjh asdfg ;lkjh asdfg ;lkjh asdfg ;lkjh asdfg ;lkjh asdfg ;lkjh asdfg ;lkjh",
+                    "objectives": ["Hand-to-hand rhythm", "Thumb spacebar coordination", "Zero keyboard looking"],
+                    "masteryCriteria": "Continuous steady rhythm across 4 lines"
+                },
+                {
+                    "lessonId": "1.4",
+                    "lessonNumber": "1.4",
+                    "title": "Scrambled Combinations & Practice Model 1",
+                    "instructions": "Scramble the dictation of letters across both combinations without looking at your paper. Follow stroke for stroke and space for space. Apply to genuine home row sentences.",
+                    "drillText": "asdfg ;lkjh asdfg ;lkjh a lad has a glad dad; dad had half a shad salad; all lads fall as a glad lad falls; a flask has a fall; asks a lad; glass flask falls; flag has a fall",
+                    "objectives": ["No hesitation pauses", "Real home row word fluency", "98%+ accuracy"],
+                    "masteryCriteria": "Type Practice Model 1 with 0 errors"
+                }
+            ]
+        },
+        {
+            "unitNumber": 2,
+            "unitId": "unit-2",
+            "title": "Basic Diagonal Combinations",
+            "subtitle": "Diagonal reaches: aqaz, swsx, dedc, frfv, gtgb, ;p;/, lol., kik,, jujm, hyhn",
+            "pageRange": "Pages 17-23",
+            "overview": "Mastering the diagonal vertical channels across all three letter rows. Rule for left hand: 'Up and out, Down and in'. Rule for right hand: 'Up and in, Down and out'. Always return the reaching finger immediately to its home row key.",
+            "lessons": [
+                {
+                    "lessonId": "2.1",
+                    "lessonNumber": "2.1",
+                    "title": "Left Hand Diagonals (aqaz, swsx, dedc, frfv, gtgb)",
+                    "instructions": "Little finger: a -> up to q -> back to a -> down to z -> space (aqaz). Ring finger: s -> up to w -> back to s -> down to x -> space (swsx). Middle finger: d -> up to e -> back to d -> down to c -> space (dedc). Index finger: f -> up to r -> back to f -> down to v -> space (frfv). Extended index: g -> up to t -> back to g -> down to b -> space (gtgb).",
+                    "drillText": "aqaz swsx dedc frfv gtgb aqaz swsx dedc frfv gtgb aqaz swsx dedc frfv gtgb aqaz swsx dedc frfv gtgb",
+                    "objectives": ["Independent diagonal reaching", "Immediate home key recovery", "Relaxed hand posture"],
+                    "masteryCriteria": "Recite and type left diagonals without hesitation"
+                },
+                {
+                    "lessonId": "2.2",
+                    "lessonNumber": "2.2",
+                    "title": "Right Hand Diagonals (;p;/, lol., kik,, jujm, hyhn)",
+                    "instructions": "Little finger: ; -> up to p -> back to ; -> down to / -> space (;p;/). Ring finger: l -> up to o -> back to l -> down to . -> space (lol.). Middle finger: k -> up to i -> back to k -> down to , -> space (kik,). Index finger: j -> up to u -> back to j -> down to m -> space (jujm). Extended index: h -> up to y -> back to h -> down to n -> space (hyhn).",
+                    "drillText": ";p;/ lol. kik, jujm hyhn ;p;/ lol. kik, jujm hyhn ;p;/ lol. kik, jujm hyhn ;p;/ lol. kik, jujm hyhn",
+                    "objectives": ["Right diagonal coordinate mastery", "Punctuation reaches for period and comma", "Even touch"],
+                    "masteryCriteria": "Recite and type right diagonals without hesitation"
+                },
+                {
+                    "lessonId": "2.3",
+                    "lessonNumber": "2.3",
+                    "title": "Full Diagonal Channels & Practice Model 2",
+                    "instructions": "Type the full 10-channel diagonal system across both hands, alternating smoothly. Then practice applied vocabulary.",
+                    "drillText": "aqaz swsx dedc frfv gtgb ;p;/ lol. kik, jujm hyhn jazz quick lazy wax zoom view much play slow time next form drop park jump quick zebra flask a lad has a glad dad; dad had half a shad salad;",
+                    "objectives": ["Seamless transitions across rows", "Whole-word integration", "97%+ accuracy"],
+                    "masteryCriteria": "Type Practice Model 2 with 0 errors"
+                }
+            ]
+        },
+        {
+            "unitNumber": 3,
+            "unitId": "unit-3",
+            "title": "Typing the Alphabet",
+            "subtitle": "Full A-Z coordination, alphabetic reaches, word families & endings",
+            "pageRange": "Pages 24-27",
+            "overview": "Combining horizontal and diagonal motor reflexes into continuous alphabetic typing. Learn the coordinate map of the entire 26-letter alphabet and practice common word endings (-ing, -tion, -ed, -ment, -ness).",
+            "lessons": [
+                {
+                    "lessonId": "3.1",
+                    "lessonNumber": "3.1",
+                    "title": "Full Alphabet Continuous Sequence",
+                    "instructions": "Type the entire alphabet from A to Z smoothly by connecting coordinate reaches without stopping: a b c d e f g h i j k l m n o p q r s t u v w x y z.",
+                    "drillText": "a b c d e f g h i j k l m n o p q r s t u v w x y z abcdefghijklmnopqrstuvwxyz zyxwvutsrqponmlkjihgfedcba",
+                    "objectives": ["Alphabet muscle memory", "Eliminate visual hunting", "Continuous typing cadence"],
+                    "masteryCriteria": "Continuous error-free alphabet sequence"
+                },
+                {
+                    "lessonId": "3.2",
+                    "lessonNumber": "3.2",
+                    "title": "Practice Model 3A — Common Words & Sentences",
+                    "instructions": "Type structured sentences exercising diverse reaches across the entire keyboard without looking down.",
+                    "drillText": "asdfg ;lkjh asdfg ;lkjh aqaz swsx dedc frfv gtgb ;p;/ lol. kik, jujm hyhn the quick brown fox jumps over the lazy dog pack my box with five dozen liquor jugs",
+                    "objectives": ["Whole-keyboard coordination", "Sentence rhythm", "97%+ accuracy"],
+                    "masteryCriteria": "Flawless Practice Model 3A execution"
+                },
+                {
+                    "lessonId": "3.3",
+                    "lessonNumber": "3.3",
+                    "title": "Practice Model 3B — Common Word-Endings",
+                    "instructions": "Practice high-frequency English suffixes: -ing, -tion, -ed, -er, -ment, -ness, -able.",
+                    "drillText": "running marking playing mention action station wanted typed player writer payment movement goodness kindness reliable capable",
+                    "objectives": ["Suffix motor chunk recognition", "Speed through word endings", "Smooth rhythm"],
+                    "masteryCriteria": "Rapid suffix typing without hesitation"
+                }
+            ]
+        },
+        {
+            "unitNumber": 4,
+            "unitId": "unit-4",
+            "title": "Capital Letters, Punctuation, Abbreviations & Ailments",
+            "subtitle": "Shift keys, periods, commas, colons, abbreviations & typing remedies",
+            "pageRange": "Pages 28-34",
+            "overview": "Proper technique for Shift keys (always use the opposite hand's pinky to hold Shift down while the other hand strikes the letter). Spacing rules: space once after comma or semicolon; space twice after period, colon, question mark, or exclamation point completing a sentence.",
+            "lessons": [
+                {
+                    "lessonId": "4.1",
+                    "lessonNumber": "4.1",
+                    "title": "Opposite-Hand Shift Key Technique",
+                    "instructions": "To capitalize a right-hand letter (J, K, L, U, I, O, P, H, N, M), hold Left Shift with left little finger. To capitalize a left-hand letter (A, S, D, F, Q, W, E, R, T, G, Z, X, C, V, B), hold Right Shift with right little finger. Hold Shift down until the stroke is fully completed.",
+                    "drillText": "John Mary Paul Ruth Frank David Sarah Alice London Paris Rome New York Chicago Boston",
+                    "objectives": ["Opposite shift coordination", "Even height capitals (no flying capitals)", "Zero rhythm interruption"],
+                    "masteryCriteria": "100% correct opposite-hand shift execution"
+                },
+                {
+                    "lessonId": "4.2",
+                    "lessonNumber": "4.2",
+                    "title": "Punctuation Spacing & Practice Models 4A & 4B",
+                    "instructions": "Rule 1: After a comma or semicolon, space once. Rule 2: After a period or colon completing a sentence, space twice. Rule 3: Do not space before punctuation marks.",
+                    "drillText": "No one is so old as to think he cannot live one more year. It is work which gives flavor to life. After a comma or a semicolon, space once. After a period or colon which completes a sentence, space twice. Would you remember to shift for the colon?",
+                    "objectives": ["Correct punctuation spacing", "Automated sentence capitalization", "98%+ accuracy"],
+                    "masteryCriteria": "Type Practice Model 4B with zero spacing errors"
+                },
+                {
+                    "lessonId": "4.3",
+                    "lessonNumber": "4.3",
+                    "title": "Ailments and Remedies & Practice Model 4C",
+                    "instructions": "Ailment: Flying capitals -> Remedy: Hold shift down firmly until stroke completes. Ailment: Irregular left margin -> Remedy: Return carriage or press enter smoothly without slamming. Ailment: Sluggish typing -> Remedy: Strike keys with sharp staccato snap.",
+                    "drillText": "Posture is important in typing. Keep your feet flat on the floor and your wrists relaxed. Sharp, light, staccato strokes produce clear and clean print. Hold the shift key down firmly until the stroke has been completed.",
+                    "objectives": ["Master typing mechanics", "Eliminate physical errors", "Smooth carriage rhythm"],
+                    "masteryCriteria": "Clean, even print without flying capitals"
+                }
+            ]
+        },
+        {
+            "unitNumber": 5,
+            "unitId": "unit-5",
+            "title": "Numerals, Punctuation and Special Characters",
+            "subtitle": "Top row numbers 1-0, fractions, currency ($), symbols (%, &, *, #, +, -)",
+            "pageRange": "Pages 35-42",
+            "overview": "Extending reaches up to the top number row. Finger assignments: Left pinky (1), ring (2), middle (3), index (4 and 5); Right index (6 and 7), middle (8), ring (9), pinky (0, hyphen, equals). Shift on number row produces special characters (!, @, #, $, %, ^, &, *, (, )).",
+            "lessons": [
+                {
+                    "lessonId": "5.1",
+                    "lessonNumber": "5.1",
+                    "title": "Number Row Coordinate Reaches (1 through 0)",
+                    "instructions": "Reach upward from home keys to the number row. Always snap back to home position: 1 2 3 4 5 6 7 8 9 0.",
+                    "drillText": "1 2 3 4 5 6 7 8 9 0 10 20 30 40 50 60 70 80 90 100 12345 67890 1945 1963 2026",
+                    "objectives": ["Top row spatial orientation", "Independent finger reaches to numbers", "Zero looking down"],
+                    "masteryCriteria": "Blind number row accuracy"
+                },
+                {
+                    "lessonId": "5.2",
+                    "lessonNumber": "5.2",
+                    "title": "Commercial & Financial Symbols ($, %, &, #, @, *)",
+                    "instructions": "Hold opposite Shift for symbols: Shift+4 = $, Shift+5 = %, Shift+7 = &, Shift+3 = #, Shift+8 = *, Shift+2 = @. Practice Models 5A & 5B.",
+                    "drillText": "$10 $25.50 $100.00 15% 25% 100% #42 #99 Jones & Smith Co. rate @ 5% total = $1,250.75 1/2 1/4 3/4",
+                    "objectives": ["Shift-symbol coordination", "Financial data accuracy", "Punctuation balancing"],
+                    "masteryCriteria": "Type symbols with 98% accuracy"
+                },
+                {
+                    "lessonId": "5.3",
+                    "lessonNumber": "5.3",
+                    "title": "Practice Models 5C, 5D & 5E — Business Invoices & Data",
+                    "instructions": "Realistic business billing, dates, fractions, and mixed numerical tables.",
+                    "drillText": "Invoice #4829: 25 items @ $14.50 = $362.50 less 10% discount ($36.25) net amount due $326.25 by Aug. 25, 2026. Account #9821-B: Credit $500.00; Debit $125.50; Balance $374.50.",
+                    "objectives": ["Alphanumeric typing agility", "Precision under numeric density", "98%+ accuracy"],
+                    "masteryCriteria": "Flawless invoice data typing"
+                }
+            ]
+        },
+        {
+            "unitNumber": 6,
+            "unitId": "unit-6",
+            "title": "Paragraph Practice and Alphabetic Sentences",
+            "subtitle": "Pangrams, continuous prose, line return rhythm & steady cadence",
+            "pageRange": "Pages 43-45",
+            "overview": "Transitioning from isolated drills to paragraph-level reading and typing. The goal is to type continuously without stopping for mistakes, maintaining a uniform rhythmic flow like a metronome.",
+            "lessons": [
+                {
+                    "lessonId": "6.1",
+                    "lessonNumber": "6.1",
+                    "title": "Alphabetic Sentences (Pangrams)",
+                    "instructions": "Sentences containing every letter of the alphabet to test complete keyboard coordination.",
+                    "drillText": "The quick brown fox jumps over the lazy dog. Pack my box with five dozen liquor jugs. A quick movement of the enemy will jeopardize six gunboats. How vexingly quick daft zebras jump! Sphinx of black quartz judge my vow.",
+                    "objectives": ["Full keyboard integration", "Continuous sentence cadence", "No keyboard glances"],
+                    "masteryCriteria": "30+ WPM on pangrams with 98% accuracy"
+                },
+                {
+                    "lessonId": "6.2",
+                    "lessonNumber": "6.2",
+                    "title": "Practice Model 6 — Continuous Paragraph Prose Flow",
+                    "instructions": "Type continuous multi-line paragraphs. When approaching the end of a line, listen for the bell or prepare for the return without interrupting the typing tempo.",
+                    "drillText": "To become an expert typist you must acquire rhythm and accuracy before speed. Speed is a natural result of continued accurate practice. If you strike every key with a clean, light touch and keep your eyes on the copy, you will rapidly develop both speed and endurance. Do not look at your keyboard or your finished paper while typing.",
+                    "objectives": ["Sustained 2-minute paragraph typing", "Steady metronomic cadence", "35+ WPM with 97%+ accuracy"],
+                    "masteryCriteria": "Complete Practice Model 6 with under 2 errors"
+                }
+            ]
+        },
+        {
+            "unitNumber": 7,
+            "unitId": "unit-7",
+            "title": "Skill and Speed Development (Part One)",
+            "subtitle": "Rhythmic acceleration, 1-minute bursts, error elimination & metronome flow",
+            "pageRange": "Pages 46-49",
+            "overview": "Developing the high-speed typing reflex. Speed development requires relaxing the shoulder and hand muscles while increasing finger agility. Practice short 1-minute speed bursts followed by immediate accuracy analysis.",
+            "lessons": [
+                {
+                    "lessonId": "7.1",
+                    "lessonNumber": "7.1",
+                    "title": "High-Frequency Common Word Sprints",
+                    "instructions": "Type the most common English words as unified motor bursts rather than spelling individual letters.",
+                    "drillText": "the of and to a in that is was he for it with as his on be at by this have from or one had by word but not what all were we when your can said there each which she do how their if will about many then them these so some her would make like him into time has look two more write go see",
+                    "objectives": ["Motor chunk recognition", "Speed burst acceleration", "50+ WPM raw speed"],
+                    "masteryCriteria": "50+ WPM on common words"
+                },
+                {
+                    "lessonId": "7.2",
+                    "lessonNumber": "7.2",
+                    "title": "1-Minute Timed Acceleration Test",
+                    "instructions": "Push for maximum velocity for 60 seconds. Count words typed and calculate net WPM (Words Per Minute minus error penalties).",
+                    "drillText": "True skill in typewriting is achieved when the mind dictates the thoughts directly to the fingers without conscious effort. Every word becomes a single reflex action. Practice daily with calm confidence. Relax your shoulders and keep your wrists hovering lightly.",
+                    "objectives": ["Timed performance measurement", "Identify hesitation points", "Accuracy discipline under pressure"],
+                    "masteryCriteria": "45+ net WPM with 98% accuracy"
+                }
+            ]
+        },
+        {
+            "unitNumber": 8,
+            "unitId": "unit-8",
+            "title": "Skill and Speed Development (Part Two)",
+            "subtitle": "Sustained typing endurance, 100-word sprints & fatigue management",
+            "pageRange": "Pages 50-54",
+            "overview": "Building stamina for extended typing sessions. Learn to maintain accuracy and velocity across 5-minute to 10-minute continuous typing tasks without muscle fatigue or mental strain.",
+            "lessons": [
+                {
+                    "lessonId": "8.1",
+                    "lessonNumber": "8.1",
+                    "title": "100-Word Endurance Sprint",
+                    "instructions": "Complete a continuous 100-word paragraph maintaining uniform pace from the first word to the last.",
+                    "drillText": "The art of typewriting requires not only mechanical precision but also mental stamina. When typing long documents, maintain relaxed posture and keep your breathing steady. Do not allow errors to disturb your poise. If a mistake occurs, continue smoothly without tensing up. Rhythm and relaxation are the true secrets of rapid and tireless typing. By following these principles every day, you will build remarkable speed and confidence in all your professional and personal writing.",
+                    "objectives": ["Zero fatigue across 100 words", "Pace consistency", "98%+ accuracy target"],
+                    "masteryCriteria": "50+ WPM sustained across 100 words"
+                },
+                {
+                    "lessonId": "8.2",
+                    "lessonNumber": "8.2",
+                    "title": "Rhythm Control & Difficult Word Sequences",
+                    "instructions": "Mastering tricky letter combinations, alternating hand jumps, and complex syllable transitions.",
+                    "drillText": "extraordinary communication international institutional philosophical psychological administrative comprehensive responsibility technological performance specification infrastructure configuration administration",
+                    "objectives": ["Complex word chunking", "Prevent finger entanglement", "Graceful error recovery"],
+                    "masteryCriteria": "Zero stumble on multi-syllable vocabulary"
+                }
+            ]
+        },
+        {
+            "unitNumber": 9,
+            "unitId": "unit-9",
+            "title": "Business and Personal Letters",
+            "subtitle": "Formal correspondence, block/indented styles, salutations & envelopes",
+            "pageRange": "Pages 55-69",
+            "overview": "Applying typing skill to professional correspondence. The essential parts of a business letter: 1. Date line, 2. Inside address, 3. Salutation, 4. Body of letter, 5. Complimentary close, 6. Signature line, 7. Identification initials.",
+            "lessons": [
+                {
+                    "lessonId": "9.1",
+                    "lessonNumber": "9.1",
+                    "title": "Full Block Style Business Letter",
+                    "instructions": "In full block style, every line begins flush with the left margin. Single space within paragraphs and double space between paragraphs.",
+                    "drillText": "August 25, 2026\n\nMr. Robert H. Smith\n1245 Madison Avenue\nNew York, NY 10028\n\nDear Mr. Smith:\n\nThank you for your inquiry regarding our touch typing training curriculum. We are pleased to provide you with the complete details of our ten-lesson course.\n\nOur method has been designed to build maximum typing accuracy, confidence, and speed in the shortest possible time. We look forward to working with you.\n\nSincerely yours,\nRuth Ben'Ary\nDirector of Training",
+                    "objectives": ["Business letter formatting", "Tab and margin discipline", "Professional correspondence mastery"],
+                    "masteryCriteria": "Flawless full-block letter formatting"
+                },
+                {
+                    "lessonId": "9.2",
+                    "lessonNumber": "9.2",
+                    "title": "Semi-Block (Indented) Style Business Letter",
+                    "instructions": "In semi-block style, paragraph first lines are indented 5 spaces (use Tab stop at 5), while date and complimentary close are positioned at center or right.",
+                    "drillText": "Dear Customer:\n     We have received your order #7892 and are pleased to inform you that your shipment has been dispatched today.\n     Should you have any questions concerning your order, please do not hesitate to contact our office.\n\nVery truly yours,\nCustomer Relations Dept.",
+                    "objectives": ["Indented paragraph typing", "Tab stop utilization", "Flawless formatting"],
+                    "masteryCriteria": "Flawless semi-block letter formatting"
+                }
+            ]
+        },
+        {
+            "unitNumber": 10,
+            "unitId": "unit-10",
+            "title": "Tricks of the Trade",
+            "subtitle": "Centering, tabulation, carbon copies, error correction & practical office skills",
+            "pageRange": "Pages 70-84",
+            "overview": "Advanced typing techniques used by master typists: horizontal and vertical centering, column tabulation, typing on ruled paper, addressing envelopes, and rapid clean error correction.",
+            "lessons": [
+                {
+                    "lessonId": "10.1",
+                    "lessonNumber": "10.1",
+                    "title": "Horizontal Centering Technique",
+                    "instructions": "To center a heading horizontally: move carriage to center point (40 or 50), backspace once for every two letters or spaces in the title, and then type.",
+                    "drillText": "TOUCH TYPING IN TEN LESSONS\nTHE BASIC COMBINATIONS METHOD\nOFFICIAL CERTIFICATION OF PROFICIENCY",
+                    "objectives": ["Heading centering precision", "Visual balance", "Title case capitalization"],
+                    "masteryCriteria": "Perfect horizontal heading centering"
+                },
+                {
+                    "lessonId": "10.2",
+                    "lessonNumber": "10.2",
+                    "title": "Tabular Columns and Data Entry",
+                    "instructions": "Set tab stops for clean vertical column alignment across names, quantities, and prices.",
+                    "drillText": "Item No.    Description         Quantity    Unit Price    Total\n001         Keyboard Switch     50          $1.20         $60.00\n002         Keycap Set          10          $25.00        $250.00\n003         Desk Mat            5           $18.00        $90.00",
+                    "objectives": ["Tab key agility", "Tabular column accuracy", "Aligned numeric data"],
+                    "masteryCriteria": "Clean multi-column data alignment"
+                },
+                {
+                    "lessonId": "10.3",
+                    "lessonNumber": "10.3",
+                    "title": "Final Comprehensive Master Examination",
+                    "instructions": "The ultimate test of typing proficiency covering all 10 lessons: letters, numbers, symbols, capitalization, and formatting.",
+                    "drillText": "Congratulations on completing the ten lessons of touch typewriting! You have mastered the keyboard coordinate system, developed accurate finger reflexes, and learned the essential arts of professional typing. Maintain your skill through daily practice, always prioritizing accuracy over haste. Your keyboard is now an instrument of effortless creation.",
+                    "objectives": ["Final touch typing mastery", "60+ WPM graduation benchmark", "Flawless touch typing execution"],
+                    "masteryCriteria": "60+ WPM at 98%+ accuracy across final exam"
+                }
+            ]
+        }
+    ]
+}
+
+# Save JSON
+json_path = Path("d:/eepytype/ben_ary_ten_lessons_curriculum.json")
+with open(json_path, "w", encoding="utf-8") as f:
+    json.dump(curriculum, f, indent=2, ensure_ascii=False)
+print(f"Saved {json_path}")
+
+# Save Markdown
+md_lines = [
+    f"# {curriculum['title']}",
+    f"**Author:** {curriculum['author']} | **Foreword:** {curriculum['foreword']}  ",
+    f"**Publisher:** {curriculum['publisher']}  ",
+    f"**Method:** {curriculum['coreMethod']}  ",
+    "",
+    "---",
+    "",
+    "## Curriculum Map",
+    "",
+    "| Unit | Title | Focus / Subtitle | Page Range | Lessons |",
+    "|---|---|---|---:|---:|",
+]
+
+for u in curriculum["units"]:
+    md_lines.append(f"| Unit {u['unitNumber']} | **{u['title']}** | {u['subtitle']} | {u['pageRange']} | {len(u['lessons'])} |")
+
+md_lines.append("")
+md_lines.append("---")
+md_lines.append("")
+
+for u in curriculum["units"]:
+    md_lines.append(f"# UNIT {u['unitNumber']} — {u['title'].upper()}")
+    md_lines.append(f"*{u['subtitle']}* — **{u['pageRange']}**\n")
+    md_lines.append(f"### Overview\n{u['overview']}\n")
+    
+    for l in u["lessons"]:
+        md_lines.append(f"## Lesson {l['lessonNumber']}: {l['title']}")
+        md_lines.append(f"\n**Instructions & Finger Movements:**\n{l['instructions']}\n")
+        md_lines.append(f"**Drill Practice Text:**\n```text\n{l['drillText']}\n```\n")
+        md_lines.append("**Key Objectives:**")
+        for obj in l["objectives"]:
+            md_lines.append(f"- {obj}")
+        md_lines.append(f"- **Mastery Benchmark:** {l['masteryCriteria']}\n")
+        md_lines.append("---\n")
+
+md_path = Path("d:/eepytype/BEN_ARY_TEN_LESSONS_COMPLETE.md")
+with open(md_path, "w", encoding="utf-8") as f:
+    f.write("\n".join(md_lines))
+print(f"Saved {md_path}")
