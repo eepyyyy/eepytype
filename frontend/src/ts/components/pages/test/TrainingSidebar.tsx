@@ -3,7 +3,6 @@ import { createMemo, For, JSXElement, Show } from "solid-js";
 import {
   activeStage,
   activeUnit,
-  exitTraining,
   isTrainingActive,
   selectTrainingStage,
 } from "../../../states/training";
@@ -32,126 +31,97 @@ export function TrainingSidebar(): JSXElement {
       <aside
         aria-label="Training Lesson Progression"
         class={cn(
-          "fixed top-1/2 right-4 z-20 -translate-y-1/2 md:right-8",
-          "w-64 rounded-2xl border border-sub-alt/60 bg-bg/95 p-5 shadow-2xl backdrop-blur-md sm:w-72",
-          "animate-in fade-in slide-in-from-right-4 transition-all duration-300",
+          "pointer-events-auto fixed top-1/2 right-8 z-20 -translate-y-1/2 select-none lg:right-16",
+          "flex w-60 flex-col justify-between",
+          "animate-in fade-in transition-all duration-300",
         )}
       >
-        {/* Header / Exit button */}
-        <div class="flex items-center justify-between border-b border-sub-alt/40 pb-3">
-          <span class="text-[10px] font-extrabold tracking-widest text-main uppercase">
-            Lesson Description
-          </span>
-          <button
-            type="button"
-            onClick={exitTraining}
-            aria-label="Close Training Mode"
-            class="rounded p-1 text-xs text-sub transition-colors hover:text-text"
-          >
-            <Fa icon="fa-times" />
-          </button>
-        </div>
-
-        {/* Lesson Title with Icon */}
-        <div class="mt-3 flex items-start gap-3">
-          <div class="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl bg-main/15 text-base text-main shadow-sm">
-            <Fa icon="fa-book-open" />
+        {/* Top: Lesson Description */}
+        <div>
+          <div class="font-mono text-[11px] font-bold tracking-wider text-main uppercase">
+            LESSON DESCRIPTION
           </div>
-          <div>
-            <h4 class="text-sm leading-snug font-bold text-text">
+
+          <div class="mt-2 flex items-start gap-2.5">
+            <Fa icon="fa-book-open" class="mt-1 shrink-0 text-base text-main" />
+            <h3 class="text-base leading-snug font-bold text-text">
               {currentUnit().title}
-            </h4>
-            <p class="mt-0.5 text-[11px] leading-tight text-sub">
-              {currentStage().description}
-            </p>
+            </h3>
+          </div>
+
+          {/* Middle: Lesson Progression */}
+          <div class="mt-7">
+            <div class="font-mono text-[11px] font-bold tracking-wider text-sub/70 uppercase">
+              LESSON PROGRESSION
+            </div>
+
+            {/* Vertical timeline */}
+            <div class="relative mt-3 pl-2.5">
+              {/* Connected vertical line */}
+              <div class="pointer-events-none absolute top-1.5 bottom-1.5 left-[4.5px] w-[1.5px] bg-sub-alt/60"></div>
+
+              <div class="custom-scroll flex max-h-[40vh] flex-col gap-3.5 overflow-y-auto pr-1">
+                <For each={currentUnit().stages}>
+                  {(stage) => {
+                    const isActive = () => stage.id === currentStage().id;
+
+                    return (
+                      <button
+                        type="button"
+                        onClick={() =>
+                          selectTrainingStage(currentUnit(), stage)
+                        }
+                        class={cn(
+                          "group relative flex items-center gap-3 text-left transition-all",
+                          isActive()
+                            ? "font-bold text-text"
+                            : "text-sub/80 hover:text-text",
+                        )}
+                      >
+                        {/* Milestone dot on line */}
+                        <div
+                          class={cn(
+                            "relative z-10 h-2 w-2 shrink-0 rounded-full transition-all",
+                            isActive()
+                              ? "scale-125 bg-main ring-2 ring-main/30"
+                              : "bg-sub-alt group-hover:bg-sub",
+                          )}
+                        ></div>
+
+                        {/* Stage text: e.g. 2.1 Positioning */}
+                        <span
+                          class={cn(
+                            "text-xs transition-colors",
+                            isActive()
+                              ? "font-bold text-text"
+                              : "text-sub/80 group-hover:text-text",
+                          )}
+                        >
+                          {stage.stageNumber} {stage.shortTitle}
+                        </span>
+                      </button>
+                    );
+                  }}
+                </For>
+              </div>
+            </div>
           </div>
         </div>
 
-        {/* Lesson Progression Subheader */}
-        <div class="mt-6 mb-2 flex items-center justify-between">
-          <span class="text-[10px] font-extrabold tracking-widest text-sub uppercase">
-            Lesson Progression
-          </span>
-          <span class="text-[10px] font-semibold text-main/90">
-            Unit {currentUnit().unitNumber}
-          </span>
-        </div>
-
-        {/* Vertical Timeline Track */}
-        <div class="relative mt-3 pl-3">
-          {/* Vertical connecting line */}
-          <div class="pointer-events-none absolute top-2 bottom-2 left-[17px] w-0.5 bg-sub-alt/50"></div>
-
-          <div class="custom-scroll flex max-h-[45vh] flex-col gap-3.5 overflow-y-auto pr-1">
-            <For each={currentUnit().stages}>
-              {(stage) => {
-                const isActive = () => stage.id === currentStage().id;
-                const isPassed = () => {
-                  const currIdx = currentUnit().stages.findIndex(
-                    (s) => s.id === currentStage().id,
-                  );
-                  const thisIdx = currentUnit().stages.findIndex(
-                    (s) => s.id === stage.id,
-                  );
-                  return thisIdx < currIdx;
-                };
-
-                return (
-                  <button
-                    type="button"
-                    onClick={() => selectTrainingStage(currentUnit(), stage)}
-                    class={cn(
-                      "group relative flex items-center gap-3 text-left transition-all",
-                      isActive()
-                        ? "font-bold text-text"
-                        : "text-sub hover:text-text",
-                    )}
-                  >
-                    {/* Milestone node / dot */}
-                    <div
-                      class={cn(
-                        "relative z-10 flex h-3 w-3 shrink-0 items-center justify-center rounded-full transition-all",
-                        isActive()
-                          ? "scale-110 bg-main shadow-sm ring-4 ring-main/25"
-                          : isPassed()
-                            ? "bg-main/60"
-                            : "bg-sub-alt group-hover:bg-sub",
-                      )}
-                    ></div>
-
-                    {/* Stage Label */}
-                    <span
-                      class={cn(
-                        "text-xs transition-colors",
-                        isActive()
-                          ? "font-bold text-text"
-                          : isPassed()
-                            ? "font-medium text-sub"
-                            : "text-sub/80 group-hover:text-text",
-                      )}
-                    >
-                      {stage.stageNumber} {stage.shortTitle}
-                    </span>
-                  </button>
-                );
-              }}
-            </For>
-          </div>
-        </div>
-
-        {/* Bottom Status: Language & Progress count + Bar */}
-        <div class="mt-7 border-t border-sub-alt/40 pt-3.5">
+        {/* Bottom Status: Divider + Language + Progress Counter + Progress Bar */}
+        <div class="mt-10 border-t border-sub-alt/40 pt-3.5">
           <div class="flex items-center justify-between text-xs text-sub">
-            <span class="flex items-center gap-1.5 font-medium">
-              <Fa icon="fa-globe" class="text-[11px]" /> english
+            <span class="flex items-center gap-1.5 font-mono">
+              <Fa icon="fa-globe" class="text-xs text-sub/80" />
+              english
             </span>
-            <span class="font-bold text-text">
+            <span class="font-mono font-bold text-text">
               {currentIndex()} / {totalStages()}
             </span>
           </div>
 
           {/* Yellow Progress bar */}
-          <div class="mt-2 h-1.5 w-full overflow-hidden rounded-full bg-sub-alt/40">
+          <div class="mt-2 h-[3px] w-full overflow-hidden rounded-full bg-sub-alt/50">
             <div
               class="h-full rounded-full bg-main transition-all duration-300"
               style={{ width: `${progressPercent()}%` }}
