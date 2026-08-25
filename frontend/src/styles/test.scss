@@ -83,6 +83,21 @@
       margin-left: 0.33em;
     }
   }
+
+  &.training-mode-active,
+  #typingTest.training-mode-active {
+    @media (min-width: 768px) {
+      #wordsWrapper,
+      #words,
+      #livestatsmini,
+      #livestatstexttop,
+      #testmodesnotice {
+        width: calc(100% - 18rem) !important;
+        max-width: calc(100% - 18rem) !important;
+        margin-right: auto !important;
+      }
+    }
+  }
 }
 
 #words {

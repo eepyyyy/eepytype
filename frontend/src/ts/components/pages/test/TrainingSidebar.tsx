@@ -26,15 +26,20 @@ export function TrainingSidebar(): JSXElement {
     return Math.round((currentIndex() / totalStages()) * 100);
   });
 
-  // Adjust text padding to prevent overlapping with sidebar
+  // Adjust test containers to prevent text overlapping with sidebar
   createEffect(() => {
+    const typingTest = document.getElementById("typingTest");
+    const pageTest = document.querySelector(".pageTest");
     const wordsWrapper = document.getElementById("wordsWrapper");
-    if (wordsWrapper) {
-      if (isTrainingActive()) {
-        wordsWrapper.classList.add("md:pr-72");
-      } else {
-        wordsWrapper.classList.remove("md:pr-72");
-      }
+
+    if (isTrainingActive()) {
+      typingTest?.classList.add("training-mode-active");
+      pageTest?.classList.add("training-mode-active");
+      wordsWrapper?.classList.add("training-mode-active");
+    } else {
+      typingTest?.classList.remove("training-mode-active");
+      pageTest?.classList.remove("training-mode-active");
+      wordsWrapper?.classList.remove("training-mode-active");
     }
   });
 
