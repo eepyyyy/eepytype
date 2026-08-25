@@ -51,7 +51,6 @@ export async function onRequestGet(context: {
           dataSource: cluster,
           database: "eepytype",
           collection: "practice_texts",
-          sort: { category: 1, title: 1 },
           limit: 1000,
         }),
       });

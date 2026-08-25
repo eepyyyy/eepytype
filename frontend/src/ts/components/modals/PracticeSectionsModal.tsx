@@ -154,18 +154,21 @@ export function PracticeSectionsModal(props: {
     const cat = selectedCategory();
     const diff = selectedDifficulty();
 
-    return texts().filter((item) => {
-      const matchCat = cat === "all" || item.category === cat;
-      const matchDiff = diff === "all" || item.difficulty === diff;
-      const matchQuery =
-        query === "" ||
-        item.title.toLowerCase().includes(query) ||
-        item.author.toLowerCase().includes(query) ||
-        item.source.toLowerCase().includes(query) ||
-        item.text.toLowerCase().includes(query);
+    return texts()
+      .slice()
+      .reverse()
+      .filter((item) => {
+        const matchCat = cat === "all" || item.category === cat;
+        const matchDiff = diff === "all" || item.difficulty === diff;
+        const matchQuery =
+          query === "" ||
+          item.title.toLowerCase().includes(query) ||
+          item.author.toLowerCase().includes(query) ||
+          item.source.toLowerCase().includes(query) ||
+          item.text.toLowerCase().includes(query);
 
-      return matchCat && matchDiff && matchQuery;
-    });
+        return matchCat && matchDiff && matchQuery;
+      });
   };
 
   const selectPracticeText = (item: PracticeTextEntry): void => {
