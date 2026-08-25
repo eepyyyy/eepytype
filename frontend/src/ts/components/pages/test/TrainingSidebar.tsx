@@ -82,7 +82,7 @@ export function TrainingSidebar(): JSXElement {
           {/* Vertical connecting line */}
           <div class="pointer-events-none absolute top-2 bottom-2 left-[17px] w-0.5 bg-sub-alt/50"></div>
 
-          <div class="flex flex-col gap-3.5">
+          <div class="custom-scroll flex max-h-[45vh] flex-col gap-3.5 overflow-y-auto pr-1">
             <For each={currentUnit().stages}>
               {(stage) => {
                 const isActive = () => stage.id === currentStage().id;

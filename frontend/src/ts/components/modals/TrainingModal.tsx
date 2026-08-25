@@ -1,4 +1,4 @@
-import { createMemo, createSignal, For, JSXElement } from "solid-js";
+import { createMemo, createSignal, For, JSXElement, Show } from "solid-js";
 
 import {
   selectTrainingStage,
@@ -57,7 +57,7 @@ export function TrainingModal(): JSXElement {
         </div>
 
         {/* Unit Selection Tabs */}
-        <div class="grid grid-cols-2 gap-2 sm:grid-cols-5">
+        <div class="custom-scroll flex gap-2 overflow-x-auto pb-1.5 sm:grid sm:grid-cols-4 md:grid-cols-7">
           <For each={TRAINING_CURRICULUM}>
             {(unit) => {
               const isSelected = () => unit.unitId === selectedUnitId();
@@ -66,16 +66,16 @@ export function TrainingModal(): JSXElement {
                   type="button"
                   onClick={() => setSelectedUnitId(unit.unitId)}
                   class={cn(
-                    "flex flex-col items-start gap-1 rounded-xl border p-3 text-left transition-all",
+                    "flex shrink-0 flex-col items-start gap-1 rounded-xl border p-2.5 text-left transition-all sm:shrink",
                     isSelected()
                       ? "border-main bg-main/10 text-text shadow-sm"
                       : "border-sub-alt/60 bg-sub-alt/20 text-sub hover:border-sub-alt hover:bg-sub-alt/40 hover:text-text",
                   )}
                 >
-                  <div class="flex items-center gap-1.5">
+                  <div class="flex w-full items-center gap-1.5">
                     <span
                       class={cn(
-                        "flex h-5 w-5 items-center justify-center rounded-full text-[10px] font-extrabold",
+                        "flex h-5 w-5 shrink-0 items-center justify-center rounded-full text-[10px] font-extrabold",
                         isSelected()
                           ? "bg-main text-bg"
                           : "bg-sub-alt text-sub",
@@ -84,7 +84,7 @@ export function TrainingModal(): JSXElement {
                       {unit.unitNumber}
                     </span>
                     <span class="truncate text-xs font-bold text-text">
-                      {unit.title}
+                      {unit.title.split("&")[0]?.split("—")[0]?.trim()}
                     </span>
                   </div>
                   <span class="line-clamp-1 text-[10px] text-sub">
@@ -98,24 +98,24 @@ export function TrainingModal(): JSXElement {
 
         {/* Active Unit Stages List */}
         <div class="flex flex-col gap-3">
-          <div class="flex items-center justify-between">
+          <div class="flex items-center justify-between border-b border-sub-alt/40 pb-2">
             <h3 class="flex items-center gap-2 text-sm font-bold text-text">
               <Fa icon={selectedUnit().icon} class="text-main" />
               Unit {selectedUnit().unitNumber}: {selectedUnit().title}
             </h3>
             <span class="text-xs text-sub">
-              {selectedUnit().stages.length} Drills
+              {selectedUnit().stages.length} Structured Lessons
             </span>
           </div>
 
-          <div class="grid grid-cols-1 gap-2.5 sm:grid-cols-2">
+          <div class="grid grid-cols-1 gap-3 sm:grid-cols-2">
             <For each={selectedUnit().stages}>
               {(stage) => (
                 <div class="flex flex-col justify-between rounded-xl border border-sub-alt/70 bg-sub-alt/30 p-4 transition-all hover:border-main/50 hover:bg-sub-alt/60">
                   <div>
                     <div class="flex items-center justify-between">
                       <span class="rounded bg-main/15 px-2 py-0.5 text-[10px] font-bold text-main">
-                        Stage {stage.stageNumber}
+                        Lesson {stage.stageNumber}
                       </span>
                       <span class="font-mono text-[10px] text-sub">
                         {stage.drillText.split(" ").length} words
@@ -133,6 +133,14 @@ export function TrainingModal(): JSXElement {
                     <p class="mt-2.5 line-clamp-2 rounded-lg bg-bg/60 p-2 font-mono text-[11px] text-sub/90">
                       {stage.drillText}
                     </p>
+
+                    {/* Mastery target badge */}
+                    <Show when={stage.masteryTarget}>
+                      <div class="mt-2.5 flex items-center gap-1.5 text-[11px] font-medium text-main/90">
+                        <Fa icon="fa-check-circle" class="text-[10px]" />
+                        <span>Mastery: {stage.masteryTarget}</span>
+                      </div>
+                    </Show>
                   </div>
 
                   <div class="mt-4 flex justify-end">
@@ -142,7 +150,7 @@ export function TrainingModal(): JSXElement {
                       class="flex items-center gap-1.5 rounded-lg bg-main px-3.5 py-1.5 text-xs font-semibold text-bg shadow-sm transition-all hover:brightness-110 active:scale-95"
                     >
                       <Fa icon="fa-play" class="text-[10px]" />
-                      Start Drill
+                      Start Lesson
                     </button>
                   </div>
                 </div>
