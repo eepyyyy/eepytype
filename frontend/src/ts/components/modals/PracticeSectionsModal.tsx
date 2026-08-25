@@ -1,5 +1,6 @@
 import {
   createEffect,
+  createMemo,
   createSignal,
   For,
   JSXElement,
@@ -60,6 +61,8 @@ const difficulties = [
   { id: "expert", label: "Expert" },
 ];
 
+const PAGE_SIZE = 30;
+
 export function PracticeSectionsModal(props: {
   setChainedData?: Setter<CustomTextIncomingData>;
 }): JSXElement {
@@ -69,6 +72,27 @@ export function PracticeSectionsModal(props: {
     createSignal<string>("all");
   const [searchQuery, setSearchQuery] = createSignal<string>("");
   const [loading, setLoading] = createSignal<boolean>(true);
+  const [displayLimit, setDisplayLimit] = createSignal<number>(PAGE_SIZE);
+
+  let scrollContainerRef: HTMLDivElement | undefined = undefined;
+
+  const handleCategoryChange = (catId: string): void => {
+    setSelectedCategory(catId);
+    setDisplayLimit(PAGE_SIZE);
+    if (scrollContainerRef) scrollContainerRef.scrollTop = 0;
+  };
+
+  const handleDifficultyChange = (diffId: string): void => {
+    setSelectedDifficulty(diffId);
+    setDisplayLimit(PAGE_SIZE);
+    if (scrollContainerRef) scrollContainerRef.scrollTop = 0;
+  };
+
+  const handleSearchChange = (query: string): void => {
+    setSearchQuery(query);
+    setDisplayLimit(PAGE_SIZE);
+    if (scrollContainerRef) scrollContainerRef.scrollTop = 0;
+  };
 
   createEffect(() => {
     void (async () => {
@@ -149,29 +173,54 @@ export function PracticeSectionsModal(props: {
     })();
   });
 
-  const filteredTexts = () => {
+  const reversedTexts = createMemo(() => texts().slice().reverse());
+
+  const filteredTexts = createMemo(() => {
     const query = searchQuery().toLowerCase().trim();
     const cat = selectedCategory();
     const diff = selectedDifficulty();
+    const list = reversedTexts();
 
-    return texts()
-      .slice()
-      .reverse()
-      .filter((item) => {
-        const matchCat = cat === "all" || item.category === cat;
-        const matchDiff = diff === "all" || item.difficulty === diff;
-        const matchQuery =
-          query === "" ||
-          item.title.toLowerCase().includes(query) ||
-          item.author.toLowerCase().includes(query) ||
-          item.source.toLowerCase().includes(query) ||
-          item.text.toLowerCase().includes(query);
+    if (query === "" && cat === "all" && diff === "all") {
+      return list;
+    }
 
-        return matchCat && matchDiff && matchQuery;
-      });
+    return list.filter((item) => {
+      if (cat !== "all" && item.category !== cat) return false;
+      if (diff !== "all" && item.difficulty !== diff) return false;
+      if (query === "") return true;
+
+      return (
+        item.title.toLowerCase().includes(query) ||
+        item.author.toLowerCase().includes(query) ||
+        item.source.toLowerCase().includes(query) ||
+        item.text.toLowerCase().includes(query)
+      );
+    });
+  });
+
+  const visibleTexts = createMemo(() =>
+    filteredTexts().slice(0, displayLimit()),
+  );
+
+  const hasMore = createMemo(() => displayLimit() < filteredTexts().length);
+
+  const loadMore = (): void => {
+    if (hasMore()) {
+      setDisplayLimit((prev) => prev + PAGE_SIZE);
+    }
+  };
+
+  const handleScroll = (e: Event): void => {
+    const el = e.currentTarget as HTMLDivElement;
+    if (el.scrollHeight - el.scrollTop - el.clientHeight < 300) {
+      loadMore();
+    }
   };
 
   const selectPracticeText = (item: PracticeTextEntry): void => {
+    hideModal("PracticeSections");
+
     let clean = item.text.normalize();
     clean = clean.replace(/[\u2000-\u200A\u202F\u205F\u00A0]/g, " ");
     clean = clean.replace(/ +/gm, " ");
@@ -191,7 +240,6 @@ export function PracticeSectionsModal(props: {
     });
     setConfig("mode", "custom");
     restartTestEvent.dispatch();
-    hideModal("PracticeSections");
   };
 
   const handleLoadAndEdit = (item: PracticeTextEntry): void => {
@@ -264,7 +312,7 @@ export function PracticeSectionsModal(props: {
             {(cat) => (
               <button
                 type="button"
-                onClick={() => setSelectedCategory(cat.id)}
+                onClick={() => handleCategoryChange(cat.id)}
                 class={cn(
                   "flex items-center gap-2 rounded-lg px-3 py-1.5 text-xs font-medium transition-all",
                   selectedCategory() === cat.id
@@ -287,13 +335,13 @@ export function PracticeSectionsModal(props: {
               type="text"
               placeholder="Search by topic, author, content or keyword..."
               value={searchQuery()}
-              onInput={(e) => setSearchQuery(e.currentTarget.value)}
+              onInput={(e) => handleSearchChange(e.currentTarget.value)}
               class="w-full rounded-xl border border-sub-alt bg-bg py-2.5 pr-4 pl-10 text-sm text-text placeholder-sub/60 focus:border-main focus:outline-none"
             />
             <Show when={searchQuery().length > 0}>
               <button
                 type="button"
-                onClick={() => setSearchQuery("")}
+                onClick={() => handleSearchChange("")}
                 class="absolute right-3 text-xs text-sub hover:text-text"
               >
                 <Fa icon="fa-times" />
@@ -307,7 +355,7 @@ export function PracticeSectionsModal(props: {
               {(diff) => (
                 <button
                   type="button"
-                  onClick={() => setSelectedDifficulty(diff.id)}
+                  onClick={() => handleDifficultyChange(diff.id)}
                   class={cn(
                     "rounded-lg px-2.5 py-1 text-xs font-medium transition-all",
                     selectedDifficulty() === diff.id
@@ -325,7 +373,13 @@ export function PracticeSectionsModal(props: {
         <Separator />
 
         {/* Article Cards Grid */}
-        <div class="custom-scroll max-h-[50vh] overflow-y-auto pr-1">
+        <div
+          ref={(el) => {
+            scrollContainerRef = el;
+          }}
+          onScroll={handleScroll}
+          class="custom-scroll max-h-[50vh] overflow-y-auto pr-1"
+        >
           <Show
             when={!loading()}
             fallback={
@@ -350,7 +404,7 @@ export function PracticeSectionsModal(props: {
               }
             >
               <div class="grid grid-cols-1 gap-3 md:grid-cols-2">
-                <For each={filteredTexts()}>
+                <For each={visibleTexts()}>
                   {(item) => (
                     <div class="flex flex-col justify-between rounded-xl border border-sub-alt bg-sub-alt/40 p-4 transition-all hover:border-main/50 hover:bg-sub-alt/70">
                       <div>
@@ -413,6 +467,18 @@ export function PracticeSectionsModal(props: {
                   )}
                 </For>
               </div>
+
+              <Show when={hasMore()}>
+                <div class="flex justify-center pt-4 pb-2">
+                  <Button
+                    variant="text"
+                    class="rounded-lg px-4 py-1.5 text-xs text-sub hover:bg-sub-alt hover:text-text"
+                    text={`Load more (${filteredTexts().length - displayLimit()} remaining)`}
+                    fa={{ icon: "fa-chevron-down" }}
+                    onClick={loadMore}
+                  />
+                </div>
+              </Show>
             </Show>
           </Show>
         </div>
