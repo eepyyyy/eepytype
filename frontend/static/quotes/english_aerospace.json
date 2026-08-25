@@ -1,0 +1,59 @@
+{
+  "language": "english_aerospace",
+  "groups": [
+    [0, 100],
+    [101, 300],
+    [301, 600],
+    [601, 9999]
+  ],
+  "quotes": [
+    {
+      "text": "Houston, Tranquility Base here. The Eagle has safely landed on the Moon.",
+      "source": "Apollo 11 Lunar Landing - Neil Armstrong",
+      "length": 72,
+      "id": 1
+    },
+    {
+      "text": "The rocket equation dictates that the velocity change of a spacecraft is proportional to effective exhaust velocity and the natural logarithm of initial to final mass ratio.",
+      "source": "Tsiolkovsky Rocket Equation",
+      "length": 173,
+      "id": 2
+    },
+    {
+      "text": "Lift is generated when a moving fluid is turned by a solid object. The flow is turned in one direction, and lift is generated in the opposite direction according to Newton's third law.",
+      "source": "NASA Aerodynamics Fundamentals",
+      "length": 184,
+      "id": 3
+    },
+    {
+      "text": "The boundary layer is the thin layer of fluid adjacent to a bounding surface where the effects of viscosity are significant. As flow moves downstream over an airfoil, transition from laminar to turbulent flow alters surface skin-friction drag and delaying boundary layer separation prevents aerodynamic stall.",
+      "source": "Ludwig Prandtl - Boundary Layer Theory",
+      "length": 309,
+      "id": 4
+    },
+    {
+      "text": "Orbital mechanics governs the trajectories of artificial satellites and spacecraft through celestial mechanics. A Hohmann transfer orbit represents the most fuel-efficient elliptical trajectory to transfer between two coplanar circular orbits, requiring two instantaneous velocity impulses applied tangentially at periapsis and apoapsis.",
+      "source": "Fundamentals of Astrodynamics",
+      "length": 337,
+      "id": 5
+    },
+    {
+      "text": "Hypersonic flight occurs at speeds exceeding Mach 5, where high-temperature shock layers induce chemical dissociation of atmospheric gases. Vehicle aerothermodynamics must manage intense convective and radiative heating through ablative or reusable ceramic tile thermal protection systems. The interaction between shock waves and boundary layers creates localized peak pressure gradients and aerodynamic heating that dictate structural design limits for lifting body re-entry vehicles.",
+      "source": "Hypersonic Aerothermodynamics Handbook",
+      "length": 485,
+      "id": 6
+    },
+    {
+      "text": "In liquid-propellant rocket engines, turbopumps deliver fuel and oxidizer to the combustion chamber at extreme flow rates and pressures. The staged-combustion cycle routes preburner exhaust gas through the main chamber, eliminating overboard dump losses and achieving high specific impulse. Cryogenic propellants such as liquid hydrogen and liquid oxygen require regenerative cooling channels integrated into the nozzle jacket to absorb extreme convective heat flux from supersonic combustion gases expanding through the de Laval diverging section.",
+      "source": "Liquid Rocket Propulsion Systems",
+      "length": 548,
+      "id": 7
+    },
+    {
+      "text": "The Apollo Guidance Computer was a digital computer produced for the Apollo program that was installed on board each Apollo command module and lunar module. It was one of the first computers to utilize silicon integrated circuits. The system operated in real time with cooperative multitasking through a priority-driven executive system called the EXEC, which scheduled computing routines based on urgency. When radar data overloaded the computer during the Apollo 11 lunar descent, the 1202 and 1201 program alarms triggered core dump priority recovery, dropping low-priority telemetry tasks while continuously running critical guidance, navigation, and throttle control algorithms to ensure safe touchdown on the lunar regolith.",
+      "source": "MIT Instrumentation Lab - Apollo AGC Architecture",
+      "length": 730,
+      "id": 8
+    }
+  ]
+}

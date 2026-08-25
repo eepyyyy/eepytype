@@ -1,0 +1,53 @@
+{
+  "language": "english_mechanical",
+  "groups": [
+    [0, 100],
+    [101, 300],
+    [301, 600],
+    [601, 9999]
+  ],
+  "quotes": [
+    {
+      "text": "Energy can neither be created nor destroyed; it can only be transformed from one form to another.",
+      "source": "First Law of Thermodynamics",
+      "length": 97,
+      "id": 1
+    },
+    {
+      "text": "Stress is the internal resistance offered by a body against deformation, whereas strain is the relative measure of deformation resulting from that applied load.",
+      "source": "Mechanics of Materials",
+      "length": 160,
+      "id": 2
+    },
+    {
+      "text": "The Carnot cycle establishes the theoretical upper limit on the thermodynamic efficiency of any heat engine operating between a hot reservoir and a cold heat sink.",
+      "source": "Nicolas Léonard Sadi Carnot - Reflections on the Motive Power of Fire",
+      "length": 163,
+      "id": 3
+    },
+    {
+      "text": "Mohr's circle is a graphical representation of the transformation equations for plane stress and plane strain problems. By plotting normal stress on the horizontal axis and shear stress on the vertical axis, engineers determine principal stresses, maximum in-plane shear stress, and orientation of the principal planes.",
+      "source": "Christian Otto Mohr - Graphical Mechanics",
+      "length": 319,
+      "id": 4
+    },
+    {
+      "text": "The Navier-Stokes equations describe how the velocity, pressure, temperature, and density of a moving fluid are related. Derived by applying Newton's second law alongside Cauchy's stress tensor to fluid motion, they account for viscosity, pressure forces, and convective acceleration in both laminar and turbulent regimes.",
+      "source": "Fluid Dynamics - Navier-Stokes Momentum Equations",
+      "length": 322,
+      "id": 5
+    },
+    {
+      "text": "Fatigue failure in mechanical components occurs under repeated cyclic loading at stress levels significantly lower than the ultimate tensile strength of the material. The fatigue life comprises crack initiation at microstructural stress concentrations, subcritical crack propagation governed by Paris' law, and rapid unstable fracture when the stress intensity factor reaches critical fracture toughness. Finite element stress analysis and surface treatment methods such as shot peening introduce beneficial compressive residual stresses that retard fatigue crack growth in rotating shafts.",
+      "source": "Mechanical Engineering Design - Fatigue & Fracture Mechanics",
+      "length": 590,
+      "id": 6
+    },
+    {
+      "text": "Kinematic synthesis of planar mechanisms involves designing four-bar linkages, slider-crank configurations, and cam-follower assemblies to generate specified path motions and torque transfers. According to Grashof's theorem, a continuous rotational motion can occur if the sum of the shortest and longest link lengths is less than or equal to the sum of the remaining two link lengths. Dynamic force balancing of internal reciprocating masses minimizes vibration transmission into machine foundations, while lubricating oil films governed by Reynolds' hydrodynamic equation prevent metal-to-metal contact in high-speed journal bearings.",
+      "source": "Theory of Machines & Kinematic Synthesis",
+      "length": 636,
+      "id": 7
+    }
+  ]
+}

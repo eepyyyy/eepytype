@@ -29,6 +29,7 @@ import { Separator } from "../common/Separator";
 import { SubmitButton } from "../ui/form/SubmitButton";
 import { TextareaField } from "../ui/form/TextareaField";
 import { CustomGeneratorModal } from "./CustomGeneratorModal";
+import { EngineeringDocumentsModal } from "./EngineeringDocumentsModal";
 import { SaveCustomTextModal } from "./SaveCustomTextModal";
 import { SavedTextsModal } from "./SavedTextsModal";
 import { WordFilterModal } from "./WordFilterModal";
@@ -424,7 +425,7 @@ export function CustomTextModal(): JSXElement {
           <Separator class="row-start-2 block lg:hidden" />
           <div class="row-start-3 grid gap-4 lg:row-start-1">
             {/* Top buttons row 1 */}
-            <div class="grid grid-cols-2 gap-4">
+            <div class="grid grid-cols-3 gap-2">
               <Button
                 variant="button"
                 fa={{ icon: "fa-save" }}
@@ -439,6 +440,12 @@ export function CustomTextModal(): JSXElement {
                 fa={{ icon: "fa-folder" }}
                 text="saved texts"
                 onClick={() => showModal("SavedTexts")}
+              />
+              <Button
+                variant="button"
+                fa={{ icon: "fa-book" }}
+                text="engineering docs"
+                onClick={() => showModal("EngineeringDocuments")}
               />
             </div>
 
@@ -708,6 +715,7 @@ export function CustomTextModal(): JSXElement {
       </AnimatedModal>
       <SaveCustomTextModal textToSave={textToSave} />
       <SavedTextsModal setChainedData={setIncomingChainedData} />
+      <EngineeringDocumentsModal setChainedData={setIncomingChainedData} />
       <WordFilterModal setChainedData={setIncomingChainedData} />
       <CustomGeneratorModal setChainedData={setIncomingChainedData} />
     </>

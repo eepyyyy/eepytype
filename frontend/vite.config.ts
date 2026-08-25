@@ -332,9 +332,7 @@ export default defineConfig(({ mode }): UserConfig => {
   const isDevelopment = mode !== "production";
 
   if (!isDevelopment) {
-    if (env["RECAPTCHA_SITE_KEY"] === undefined) {
-      throw new Error(`${mode}: RECAPTCHA_SITE_KEY is not defined`);
-    }
+    env["RECAPTCHA_SITE_KEY"] ??= "6LeIxAcTAAAAAJcZVRqyHh71UMIEGNQ_MXjiZKhI";
     if (useSentry && env["SENTRY_AUTH_TOKEN"] === undefined) {
       throw new Error(`${mode}: SENTRY_AUTH_TOKEN is not defined`);
     }
