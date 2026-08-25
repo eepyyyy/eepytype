@@ -297,7 +297,7 @@ export function PracticeSectionsModal(props: {
 
     const words = clean.split(" ").filter((word) => word !== "");
 
-    CustomText.setCustomText(item.title, item.text, true);
+    CustomText.setCustomText(item.title, clean, false);
     CustomText.setMode("repeat");
     CustomText.setPipeDelimiter(false);
     CustomText.setText(words);
@@ -305,7 +305,7 @@ export function PracticeSectionsModal(props: {
     CustomText.setLimitValue(words.length);
     setCustomTextIndicator({
       name: item.title,
-      isLong: true,
+      isLong: false,
     });
     setConfig("mode", "custom");
     restartTestEvent.dispatch();

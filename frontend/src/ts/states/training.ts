@@ -490,16 +490,17 @@ export function selectTrainingStage(
   clean = clean.replace(/( *(\r\n|\r|\n) *)/g, "\n ");
 
   const words = clean.split(" ").filter((w) => w !== "");
+  const drillName = `${stage.stageNumber} ${stage.shortTitle}`;
 
-  CustomText.setCustomText(stage.title, stage.drillText, true);
+  CustomText.setCustomText(drillName, clean, false);
   CustomText.setMode("repeat");
   CustomText.setPipeDelimiter(false);
   CustomText.setText(words);
   CustomText.setLimitMode("word");
   CustomText.setLimitValue(words.length);
   setCustomTextIndicator({
-    name: `${stage.stageNumber} ${stage.shortTitle}`,
-    isLong: true,
+    name: drillName,
+    isLong: false,
   });
   setConfig("mode", "custom");
   restartTestEvent.dispatch();
