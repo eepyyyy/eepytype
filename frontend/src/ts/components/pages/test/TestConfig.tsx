@@ -149,6 +149,13 @@ function Mode(): JSXElement {
           showModal("PracticeSections");
         }}
       />
+      <TCButton
+        fa={{ icon: "fa-graduation-cap" }}
+        text="training"
+        onClick={() => {
+          showModal("TrainingModal");
+        }}
+      />
     </div>
   );
 }

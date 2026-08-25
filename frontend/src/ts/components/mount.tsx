@@ -34,6 +34,7 @@ import { Monkey } from "./pages/test/Monkey";
 import { OutOfFocusWarning } from "./pages/test/OutOfFocusWarning";
 import { Premid } from "./pages/test/Premid";
 import { TestConfig } from "./pages/test/TestConfig";
+import { TrainingSidebar } from "./pages/test/TrainingSidebar";
 import { Popups } from "./popups/Popups";
 
 const components: Record<string, () => JSXElement> = {
@@ -68,6 +69,7 @@ const components: Record<string, () => JSXElement> = {
   livestatstextbottom: () => <LiveStatsTextBottom />,
   bartimerprogress: () => <BarTimerProgress />,
   premid: () => <Premid />,
+  trainingsidebar: () => <TrainingSidebar />,
 };
 
 function mountToMountpoint(name: string, component: () => JSXElement): void {

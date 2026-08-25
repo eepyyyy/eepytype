@@ -22,6 +22,7 @@ import { ShareTestSettings } from "./ShareTestSettings";
 import { SimpleModal } from "./SimpleModal";
 import { StreakHourOffsetModal } from "./StreakHourOffsetModal";
 import { SupportModal } from "./SupportModal";
+import { TrainingModal } from "./TrainingModal";
 import { UserReportModal } from "./UserReportModal";
 import { VersionHistoryModal } from "./VersionHistoryModal";
 
@@ -34,6 +35,7 @@ export function Modals(): JSXElement {
       <SupportModal />
       <SimpleModal />
       <CustomTextModal />
+      <TrainingModal />
       <QuoteRateModal />
       <QuoteReportModal />
       <QuoteSearchModal />
