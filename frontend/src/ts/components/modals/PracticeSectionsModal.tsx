@@ -87,8 +87,19 @@ export function PracticeSectionsModal(): JSXElement {
   };
 
   const selectPracticeText = (item: PracticeTextEntry): void => {
+    let clean = item.text.normalize();
+    clean = clean.replace(/[\u2000-\u200A\u202F\u205F\u00A0]/g, " ");
+    clean = clean.replace(/ +/gm, " ");
+    clean = clean.replace(/( *(\r\n|\r|\n) *)/g, "\n ");
+
+    const words = clean.split(" ").filter((word) => word !== "");
+
     CustomText.setCustomText(item.title, item.text, true);
-    CustomText.setText([item.text]);
+    CustomText.setMode("repeat");
+    CustomText.setPipeDelimiter(false);
+    CustomText.setText(words);
+    CustomText.setLimitMode("word");
+    CustomText.setLimitValue(words.length);
     setCustomTextIndicator({
       name: item.title,
       isLong: true,
