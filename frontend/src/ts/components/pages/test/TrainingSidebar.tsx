@@ -26,42 +26,48 @@ export function TrainingSidebar(): JSXElement {
     return Math.round((currentIndex() / totalStages()) * 100);
   });
 
+  // Display clean focused window around current stage if more than 5 stages
+  const visibleStages = createMemo(() => {
+    const all = currentUnit().stages;
+    if (all.length <= 5) return all;
+    const currIdx = all.findIndex((s) => s.id === currentStage().id);
+    const safeIdx = currIdx >= 0 ? currIdx : 0;
+    const start = Math.max(0, Math.min(safeIdx - 1, all.length - 4));
+    return all.slice(start, start + 4);
+  });
+
   return (
     <Show when={isTrainingActive()}>
       <aside
         aria-label="Training Lesson Progression"
-        class={cn(
-          "pointer-events-auto fixed top-1/2 right-8 z-20 -translate-y-1/2 select-none lg:right-16",
-          "flex w-60 flex-col justify-between",
-          "animate-in fade-in transition-all duration-300",
-        )}
+        class="pointer-events-auto fixed top-1/2 right-6 z-10 flex w-56 -translate-y-1/2 flex-col justify-between bg-transparent select-none md:right-12 xl:right-20"
       >
         {/* Top: Lesson Description */}
         <div>
-          <div class="font-mono text-[11px] font-bold tracking-wider text-main uppercase">
+          <div class="font-mono text-[10px] font-bold tracking-widest text-main uppercase">
             LESSON DESCRIPTION
           </div>
 
-          <div class="mt-2 flex items-start gap-2.5">
-            <Fa icon="fa-book-open" class="mt-1 shrink-0 text-base text-main" />
-            <h3 class="text-base leading-snug font-bold text-text">
+          <div class="mt-2.5 flex items-start gap-2.5">
+            <Fa icon="fa-book-open" class="mt-0.5 shrink-0 text-sm text-main" />
+            <h3 class="text-[15px] leading-tight font-bold text-text">
               {currentUnit().title}
             </h3>
           </div>
 
           {/* Middle: Lesson Progression */}
-          <div class="mt-7">
-            <div class="font-mono text-[11px] font-bold tracking-wider text-sub/70 uppercase">
+          <div class="mt-8">
+            <div class="font-mono text-[10px] font-bold tracking-widest text-sub/60 uppercase">
               LESSON PROGRESSION
             </div>
 
             {/* Vertical timeline */}
-            <div class="relative mt-3 pl-2.5">
+            <div class="relative mt-3.5 pl-3">
               {/* Connected vertical line */}
-              <div class="pointer-events-none absolute top-1.5 bottom-1.5 left-[4.5px] w-[1.5px] bg-sub-alt/60"></div>
+              <div class="pointer-events-none absolute top-1.5 bottom-1.5 left-[3.5px] w-[1px] bg-sub/20"></div>
 
-              <div class="custom-scroll flex max-h-[40vh] flex-col gap-3.5 overflow-y-auto pr-1">
-                <For each={currentUnit().stages}>
+              <div class="flex flex-col gap-3.5 overflow-hidden">
+                <For each={visibleStages()}>
                   {(stage) => {
                     const isActive = () => stage.id === currentStage().id;
 
@@ -72,29 +78,29 @@ export function TrainingSidebar(): JSXElement {
                           selectTrainingStage(currentUnit(), stage)
                         }
                         class={cn(
-                          "group relative flex items-center gap-3 text-left transition-all",
+                          "group relative flex items-center gap-2.5 text-left transition-all",
                           isActive()
                             ? "font-bold text-text"
-                            : "text-sub/80 hover:text-text",
+                            : "text-sub/70 hover:text-text",
                         )}
                       >
                         {/* Milestone dot on line */}
                         <div
                           class={cn(
-                            "relative z-10 h-2 w-2 shrink-0 rounded-full transition-all",
+                            "relative z-10 h-[7px] w-[7px] shrink-0 rounded-full transition-all",
                             isActive()
                               ? "scale-125 bg-main ring-2 ring-main/30"
-                              : "bg-sub-alt group-hover:bg-sub",
+                              : "bg-sub/30 group-hover:bg-sub/60",
                           )}
                         ></div>
 
                         {/* Stage text: e.g. 2.1 Positioning */}
                         <span
                           class={cn(
-                            "text-xs transition-colors",
+                            "font-mono text-[12px] transition-colors",
                             isActive()
                               ? "font-bold text-text"
-                              : "text-sub/80 group-hover:text-text",
+                              : "text-sub/70 group-hover:text-text",
                           )}
                         >
                           {stage.stageNumber} {stage.shortTitle}
@@ -109,19 +115,19 @@ export function TrainingSidebar(): JSXElement {
         </div>
 
         {/* Bottom Status: Divider + Language + Progress Counter + Progress Bar */}
-        <div class="mt-10 border-t border-sub-alt/40 pt-3.5">
-          <div class="flex items-center justify-between text-xs text-sub">
-            <span class="flex items-center gap-1.5 font-mono">
-              <Fa icon="fa-globe" class="text-xs text-sub/80" />
+        <div class="mt-10 border-t border-sub/20 pt-3">
+          <div class="flex items-center justify-between text-xs text-sub/70">
+            <span class="flex items-center gap-1.5 font-mono text-[11px]">
+              <Fa icon="fa-globe" class="text-[11px] text-sub/60" />
               english
             </span>
-            <span class="font-mono font-bold text-text">
+            <span class="font-mono text-[11px] font-bold text-text">
               {currentIndex()} / {totalStages()}
             </span>
           </div>
 
           {/* Yellow Progress bar */}
-          <div class="mt-2 h-[3px] w-full overflow-hidden rounded-full bg-sub-alt/50">
+          <div class="mt-2 h-[2.5px] w-full overflow-hidden rounded-full bg-sub/20">
             <div
               class="h-full rounded-full bg-main transition-all duration-300"
               style={{ width: `${progressPercent()}%` }}
