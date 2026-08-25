@@ -12,6 +12,7 @@ import { GoogleSignupModal } from "./GoogleSignUpModal";
 import { LastSignedOutResultModal } from "./LastSignedOutResultModal";
 import { MobileTestConfigModal } from "./MobileTestConfigModal";
 import { PbTablesModal } from "./PbTablesModal";
+import { PracticeSectionsModal } from "./PracticeSectionsModal";
 import { AddPresetModal } from "./preset/AddPresetModal";
 import { EditPresetModal } from "./preset/EditPresetModal";
 import { QuoteRateModal } from "./QuoteRateModal";
@@ -42,6 +43,7 @@ export function Modals(): JSXElement {
       <PbTablesModal />
       <ShareTestSettings />
       <MobileTestConfigModal />
+      <PracticeSectionsModal />
       <CookiesModal />
       <AddPresetModal />
       <EditPresetModal />

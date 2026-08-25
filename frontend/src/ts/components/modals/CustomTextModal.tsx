@@ -630,6 +630,12 @@ export function CustomTextModal(): JSXElement {
               />
               <Button
                 variant="button"
+                fa={{ icon: "fa-book-open" }}
+                text="practice sections"
+                onClick={() => showModal("PracticeSections")}
+              />
+              <Button
+                variant="button"
                 fa={{ icon: "fa-file-import" }}
                 text="open file"
                 onClick={() => fileInputRef.click()}

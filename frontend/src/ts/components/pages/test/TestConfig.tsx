@@ -142,6 +142,13 @@ function Mode(): JSXElement {
           />
         )}
       </For>
+      <TCButton
+        fa={{ icon: "fa-book-open" }}
+        text="practice"
+        onClick={() => {
+          showModal("PracticeSections");
+        }}
+      />
     </div>
   );
 }
@@ -364,6 +371,13 @@ function Mode2Custom(props: ComponentProps<"div">): JSXElement {
         text="change"
         onClick={() => {
           showModal("CustomText");
+        }}
+      />
+      <TCButton
+        text="practice sections"
+        fa={{ icon: "fa-book-open" }}
+        onClick={() => {
+          showModal("PracticeSections");
         }}
       />
     </div>

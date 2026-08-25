@@ -15,6 +15,7 @@ export type ModalId =
   | "SaveCustomText"
   | "SavedTexts"
   | "EngineeringDocuments"
+  | "PracticeSections"
   | "WordFilter"
   | "CustomGenerator"
   | "QuoteSearch"
