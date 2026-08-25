@@ -30,6 +30,8 @@ export type PracticeTextEntry = {
   id: string;
   title: string;
   category: string;
+  unit?: string;
+  stage?: number;
   difficulty: "easy" | "medium" | "hard" | "expert";
   wordCount: number;
   charCount: number;
@@ -41,6 +43,11 @@ export type PracticeTextEntry = {
 
 const categories = [
   { id: "all", label: "All Topics", icon: "fa-layer-group" as const },
+  {
+    id: "training",
+    label: "Training & Drills",
+    icon: "fa-graduation-cap" as const,
+  },
   { id: "science", label: "Science", icon: "fa-atom" as const },
   { id: "philosophy", label: "Philosophy", icon: "fa-brain" as const },
   { id: "engineering", label: "Engineering", icon: "fa-cogs" as const },
@@ -51,6 +58,45 @@ const categories = [
   { id: "law", label: "Law & Civics", icon: "fa-balance-scale" as const },
   { id: "nature", label: "Nature & Earth", icon: "fa-leaf" as const },
   { id: "art", label: "Art & Culture", icon: "fa-palette" as const },
+];
+
+const trainingUnits = [
+  {
+    id: "all",
+    label: "All Units",
+    shortLabel: "All Units",
+    icon: "fa-list" as const,
+  },
+  {
+    id: "Unit 1: Beginner",
+    label: "Unit 1: Beginner",
+    shortLabel: "U1: Beginner",
+    icon: "fa-seedling" as const,
+  },
+  {
+    id: "Unit 2: Intermediate",
+    label: "Unit 2: Intermediate",
+    shortLabel: "U2: Intermediate",
+    icon: "fa-layer-group" as const,
+  },
+  {
+    id: "Unit 3: Advanced",
+    label: "Unit 3: Advanced",
+    shortLabel: "U3: Advanced",
+    icon: "fa-bolt" as const,
+  },
+  {
+    id: "Unit 4: Developer",
+    label: "Unit 4: Developer",
+    shortLabel: "U4: Code",
+    icon: "fa-code" as const,
+  },
+  {
+    id: "Unit 5: Speed & Endurance",
+    label: "Unit 5: Speed & Endurance",
+    shortLabel: "U5: Speed",
+    icon: "fa-stopwatch" as const,
+  },
 ];
 
 const difficulties = [
@@ -68,6 +114,7 @@ export function PracticeSectionsModal(props: {
 }): JSXElement {
   const [texts, setTexts] = createSignal<PracticeTextEntry[]>([]);
   const [selectedCategory, setSelectedCategory] = createSignal<string>("all");
+  const [selectedUnit, setSelectedUnit] = createSignal<string>("all");
   const [selectedDifficulty, setSelectedDifficulty] =
     createSignal<string>("all");
   const [searchQuery, setSearchQuery] = createSignal<string>("");
@@ -78,6 +125,15 @@ export function PracticeSectionsModal(props: {
 
   const handleCategoryChange = (catId: string): void => {
     setSelectedCategory(catId);
+    if (catId !== "training") {
+      setSelectedUnit("all");
+    }
+    setDisplayLimit(PAGE_SIZE);
+    if (scrollContainerRef) scrollContainerRef.scrollTop = 0;
+  };
+
+  const handleUnitChange = (unitId: string): void => {
+    setSelectedUnit(unitId);
     setDisplayLimit(PAGE_SIZE);
     if (scrollContainerRef) scrollContainerRef.scrollTop = 0;
   };
@@ -173,29 +229,42 @@ export function PracticeSectionsModal(props: {
     })();
   });
 
-  const reversedTexts = createMemo(() => texts().slice().reverse());
+  const reversedTexts = createMemo<PracticeTextEntry[]>(() =>
+    texts().slice().reverse(),
+  );
 
-  const filteredTexts = createMemo(() => {
+  const filteredTexts = createMemo<PracticeTextEntry[]>(() => {
     const query = searchQuery().toLowerCase().trim();
     const cat = selectedCategory();
+    const unit = selectedUnit();
     const diff = selectedDifficulty();
     const list = reversedTexts();
 
-    if (query === "" && cat === "all" && diff === "all") {
+    if (query === "" && cat === "all" && diff === "all" && unit === "all") {
       return list;
     }
 
     return list.filter((item) => {
-      if (cat !== "all" && item.category !== cat) return false;
-      if (diff !== "all" && item.difficulty !== diff) return false;
-      if (query === "") return true;
+      if (cat !== "all" && item.category !== cat) {
+        return false;
+      }
+      if (cat === "training" && unit !== "all" && item.unit !== unit) {
+        return false;
+      }
+      if (diff !== "all" && item.difficulty !== diff) {
+        return false;
+      }
+      if (query === "") {
+        return true;
+      }
 
-      return (
-        item.title.toLowerCase().includes(query) ||
-        item.author.toLowerCase().includes(query) ||
-        item.source.toLowerCase().includes(query) ||
-        item.text.toLowerCase().includes(query)
-      );
+      const inTitle = item.title.toLowerCase().includes(query);
+      const inAuthor = item.author.toLowerCase().includes(query);
+      const inSource = item.source.toLowerCase().includes(query);
+      const inText = item.text.toLowerCase().includes(query);
+      const inUnit = item.unit?.toLowerCase().includes(query) ?? false;
+
+      return inTitle || inAuthor || inSource || inText || inUnit;
     });
   });
 
@@ -290,16 +359,15 @@ export function PracticeSectionsModal(props: {
   return (
     <AnimatedModal
       id="PracticeSections"
-      title="Practice Sections"
+      title="Practice & Training Sections"
       modalClass="max-w-4xl"
     >
       <div class="flex flex-col gap-4">
         {/* Top Info Header */}
         <div class="flex flex-wrap items-center justify-between gap-2 border-b border-sub-alt pb-3">
           <p class="text-xs text-sub">
-            Explore curated practice sections across Science, Philosophy,
-            Engineering, Tech, Literature, History, Medicine, Law, Nature, and
-            Art.
+            Explore curated practice sections and structured touch typing
+            training drills.
           </p>
           <span class="rounded-full bg-sub-alt px-3 py-1 text-xs font-medium text-sub">
             {filteredTexts().length} texts
@@ -327,13 +395,65 @@ export function PracticeSectionsModal(props: {
           </For>
         </div>
 
+        {/* Horizontal Timeline Track */}
+        <div class="flex flex-col gap-2 rounded-xl border border-sub-alt/80 bg-sub-alt/25 p-3">
+          <div class="flex items-center justify-between">
+            <span class="flex items-center gap-1.5 text-xs font-semibold text-main">
+              <Fa icon="fa-stream" />
+              Progressive Touch Typing Timeline
+            </span>
+            <span class="text-[11px] text-sub">Step-by-step master path</span>
+          </div>
+
+          <div class="custom-scroll relative flex items-center gap-2 overflow-x-auto pt-1 pb-1">
+            <For each={trainingUnits}>
+              {(unitItem, index) => {
+                const isSelected = () =>
+                  selectedCategory() === "training" &&
+                  selectedUnit() === unitItem.id;
+
+                return (
+                  <button
+                    type="button"
+                    onClick={() => {
+                      if (selectedCategory() !== "training") {
+                        setSelectedCategory("training");
+                      }
+                      handleUnitChange(unitItem.id);
+                    }}
+                    class={cn(
+                      "flex shrink-0 items-center gap-2 rounded-lg border px-3 py-1.5 text-xs font-medium transition-all",
+                      isSelected()
+                        ? "border-main bg-main font-semibold text-bg shadow-sm"
+                        : "border-sub-alt/60 bg-bg text-sub hover:border-main/50 hover:text-text",
+                    )}
+                  >
+                    <span
+                      class={cn(
+                        "flex h-4 w-4 items-center justify-center rounded-full text-[9px] font-bold",
+                        isSelected()
+                          ? "bg-bg text-main"
+                          : "bg-sub-alt text-sub",
+                      )}
+                    >
+                      {index() === 0 ? "★" : index()}
+                    </span>
+                    <Fa icon={unitItem.icon} class="text-[11px]" />
+                    <span class="whitespace-nowrap">{unitItem.shortLabel}</span>
+                  </button>
+                );
+              }}
+            </For>
+          </div>
+        </div>
+
         {/* Search & Difficulty Filter Bar */}
         <div class="grid grid-cols-1 gap-3 sm:grid-cols-[1fr_auto]">
           <div class="relative flex items-center">
             <Fa icon="fa-search" class="absolute left-3.5 text-sub" />
             <input
               type="text"
-              placeholder="Search by topic, author, content or keyword..."
+              placeholder="Search by topic, unit, author, content or keyword..."
               value={searchQuery()}
               onInput={(e) => handleSearchChange(e.currentTarget.value)}
               class="w-full rounded-xl border border-sub-alt bg-bg py-2.5 pr-4 pl-10 text-sm text-text placeholder-sub/60 focus:border-main focus:outline-none"
@@ -416,14 +536,20 @@ export function PracticeSectionsModal(props: {
                           {getDifficultyBadge(item.difficulty)}
                         </div>
 
-                        {/* Subtitle / Source */}
-                        <div class="mt-1 flex items-center gap-2 text-xs text-sub">
+                        {/* Subtitle / Source / Unit */}
+                        <div class="mt-1 flex flex-wrap items-center gap-2 text-xs text-sub">
                           <span class="font-medium text-main/90 capitalize">
                             {item.category}
                           </span>
+                          <Show when={item.unit}>
+                            <span>•</span>
+                            <span class="rounded bg-main/15 px-1.5 py-0.5 text-[10px] font-semibold text-main">
+                              {item.unit}
+                            </span>
+                          </Show>
                           <span>•</span>
                           <span class="truncate">
-                            {item.author || item.source}
+                            {item.author !== "" ? item.author : item.source}
                           </span>
                         </div>
 
