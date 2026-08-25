@@ -1,0 +1,472 @@
+<!doctype html>
+<html class="dark" lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta content="width=device-width, initial-scale=1.0" name="viewport" />
+    <title>ZenType - Lesson Mode</title>
+    <script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+    <link
+      href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap"
+      rel="stylesheet"
+    />
+    <link href="https://fonts.googleapis.com" rel="preconnect" />
+    <link crossorigin="" href="https://fonts.gstatic.com" rel="preconnect" />
+    <link
+      href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500&amp;family=Lexend:wght@400;600;700&amp;display=swap"
+      rel="stylesheet"
+    />
+    <script id="tailwind-config">
+      tailwind.config = {
+        darkMode: "class",
+        theme: {
+          extend: {
+            colors: {
+              "primary-container": "#e2b714",
+              tertiary: "#b7dbff",
+              "on-surface-variant": "#d1c5ad",
+              "on-primary-fixed": "#231a00",
+              "inverse-primary": "#735c00",
+              "tertiary-container": "#79c2ff",
+              secondary: "#c8c7bc",
+              "secondary-container": "#4b4c44",
+              "on-background": "#e5e2e1",
+              "on-secondary-fixed-variant": "#47473f",
+              "surface-container-highest": "#353535",
+              "surface-container-high": "#2a2a2a",
+              "surface-dim": "#131313",
+              "surface-bright": "#393939",
+              outline: "#9a9079",
+              "secondary-fixed-dim": "#c8c7bc",
+              "on-error": "#690005",
+              "surface-variant": "#353535",
+              "on-primary-container": "#5c4900",
+              "on-tertiary-fixed-variant": "#004b74",
+              "on-tertiary-container": "#004f7a",
+              "outline-variant": "#4d4633",
+              "surface-container-low": "#1b1b1c",
+              surface: "#131313",
+              "error-red": "#ca4754",
+              "on-primary": "#3c2f00",
+              "surface-medium": "#323437",
+              "tertiary-fixed": "#cde5ff",
+              "surface-tint": "#eec224",
+              "on-surface": "#e5e2e1",
+              "error-container": "#93000a",
+              "on-secondary-container": "#bdbcb1",
+              primary: "#ffd341",
+              "on-tertiary": "#003351",
+              "tertiary-fixed-dim": "#93ccff",
+              background: "#131313",
+              "on-tertiary-fixed": "#001d32",
+              "on-error-container": "#ffdad6",
+              error: "#ffb4ab",
+              "on-secondary-fixed": "#1b1c15",
+              "on-primary-fixed-variant": "#574500",
+              "primary-fixed": "#ffe087",
+              "surface-container": "#202020",
+              "primary-fixed-dim": "#eec224",
+              "sub-text": "#646669",
+              "surface-container-lowest": "#0e0e0e",
+              "secondary-fixed": "#e4e3d8",
+              "inverse-surface": "#e5e2e1",
+              "inverse-on-surface": "#303030",
+              "on-secondary": "#303129",
+            },
+            borderRadius: {
+              DEFAULT: "0.125rem",
+              lg: "0.25rem",
+              xl: "0.5rem",
+              full: "0.75rem",
+            },
+            spacing: {
+              xs: "4px",
+              md: "16px",
+              sm: "8px",
+              lg: "32px",
+              "container-max": "1200px",
+              xl: "64px",
+              unit: "4px",
+              gutter: "24px",
+            },
+            fontFamily: {
+              "data-display": ["JetBrains Mono"],
+              "label-caps": ["Lexend"],
+              "headline-lg": ["Lexend"],
+              "label-mono": ["JetBrains Mono"],
+              "body-lg": ["Lexend"],
+              "body-md": ["Lexend"],
+              "headline-md": ["Lexend"],
+            },
+            fontSize: {
+              "data-display": [
+                "32px",
+                {
+                  lineHeight: "1.2",
+                  letterSpacing: "0.1em",
+                  fontWeight: "500",
+                },
+              ],
+              "label-caps": [
+                "11px",
+                {
+                  lineHeight: "1.0",
+                  letterSpacing: "0.1em",
+                  fontWeight: "700",
+                },
+              ],
+              "headline-lg": [
+                "32px",
+                {
+                  lineHeight: "1.2",
+                  letterSpacing: "-0.02em",
+                  fontWeight: "700",
+                },
+              ],
+              "label-mono": [
+                "13px",
+                {
+                  lineHeight: "1.0",
+                  letterSpacing: "0.05em",
+                  fontWeight: "400",
+                },
+              ],
+              "body-lg": ["18px", { lineHeight: "1.6", fontWeight: "400" }],
+              "body-md": ["15px", { lineHeight: "1.5", fontWeight: "400" }],
+              "headline-md": ["24px", { lineHeight: "1.3", fontWeight: "600" }],
+            },
+          },
+        },
+      };
+    </script>
+    <style>
+      .typing-caret {
+        width: 2px;
+        background-color: #e2b714;
+        animation: blink 1s step-end infinite;
+        transition: left 100ms ease-in-out;
+      }
+      @keyframes blink {
+        50% {
+          opacity: 0;
+        }
+      }
+
+      /* Hide scrollbar for Chrome, Safari and Opera */
+      .no-scrollbar::-webkit-scrollbar {
+        display: none;
+      }
+      /* Hide scrollbar for IE, Edge and Firefox */
+      .no-scrollbar {
+        -ms-overflow-style: none; /* IE and Edge */
+        scrollbar-width: none; /* Firefox */
+      }
+    </style>
+    <style>
+      body {
+        min-height: max(884px, 100dvh);
+      }
+    </style>
+  </head>
+  <body
+    class="bg-background text-on-surface font-body-md min-h-screen flex flex-col antialiased"
+  >
+    <!-- Top App Bar -->
+    <header class="w-full top-0 bg-background dark:bg-background z-40 relative">
+      <div
+        class="flex justify-between items-center px-md md:px-lg py-md max-w-container-max mx-auto h-20"
+      >
+        <div class="flex items-center gap-lg">
+          <div class="flex items-center gap-sm">
+            <span
+              class="material-symbols-outlined text-primary font-headline-md text-[32px]"
+              style="font-variation-settings: &quot;FILL&quot; 1"
+            >
+              keyboard
+            </span>
+            <h1
+              class="font-data-display text-data-display text-primary tracking-tight text-[28px] font-normal lowercase"
+            >
+              ZenType
+            </h1>
+          </div>
+          <!-- Desktop Navigation -->
+          <nav class="hidden md:flex items-center gap-sm text-sub-text">
+            <a class="p-2 hover:text-on-surface transition-colors" href="#">
+              <span class="material-symbols-outlined text-[20px]">
+                keyboard
+              </span>
+            </a>
+            <a class="p-2 hover:text-on-surface transition-colors" href="#">
+              <span class="material-symbols-outlined text-[20px]">
+                emoji_events
+              </span>
+            </a>
+            <a class="p-2 hover:text-on-surface transition-colors" href="#">
+              <span class="material-symbols-outlined text-[20px]">info</span>
+            </a>
+            <a class="p-2 hover:text-on-surface transition-colors" href="#">
+              <span class="material-symbols-outlined text-[20px]">
+                settings
+              </span>
+            </a>
+          </nav>
+        </div>
+        <!-- Right Actions -->
+        <div class="flex items-center gap-sm text-sub-text">
+          <button class="p-2 hover:text-on-surface transition-colors">
+            <span class="material-symbols-outlined text-[20px]">
+              notifications
+            </span>
+          </button>
+          <button class="p-2 hover:text-on-surface transition-colors">
+            <span class="material-symbols-outlined text-[20px]">person</span>
+          </button>
+        </div>
+      </div>
+    </header>
+    <!-- Main Content Area -->
+    <main
+      class="flex-grow flex flex-col max-w-container-max w-full mx-auto relative px-md md:px-lg h-full justify-center"
+    >
+      <div class="flex flex-col flex-1 w-full mt-12 md:mt-24">
+        <!-- Horizontal Info Bar -->
+        <!-- Central Typing Area -->
+        <div
+          class="flex-grow flex flex-col justify-center max-w-5xl w-full mx-auto relative md:pr-64"
+        >
+          <!-- The Text -->
+          <div
+            class="relative font-data-display text-[36px] md:text-[44px] leading-[1.4] tracking-wide text-sub-text"
+          >
+            <div
+              class="absolute left-0 top-[0.1em] bottom-[0.1em] typing-caret"
+            ></div>
+            <span class="text-on-surface">f</span>
+            <span class="text-on-surface">j</span>
+            <span class="text-on-surface"></span>
+            <span class="text-on-surface">f</span>
+            <span class="text-on-surface">j</span>
+            <span class="text-on-surface"></span>
+            <span class="text-on-surface">d</span>
+            <span class="text-on-surface">k</span>
+            <span class="text-on-surface"></span>
+            <span class="text-on-surface">d</span>
+            <span class="text-on-surface">k</span>
+            <span></span>
+            <span class="">s</span>
+            <span class="">l</span>
+            <span></span>
+            <span class="">s</span>
+            <span class="">l</span>
+            <span></span>
+            <span class="">a</span>
+            <span class="">;</span>
+            <span></span>
+            <span class="">a</span>
+            <span class="">;</span>
+            <span></span>
+            <span class="">f</span>
+            <span class="">j</span>
+            <span class="">d</span>
+            <span class="">k</span>
+            <span></span>
+            <span class="">s</span>
+            <span class="">l</span>
+            <span class="">a</span>
+            <span class="">;</span>
+            <span></span>
+            <span class="">g</span>
+            <span class="">h</span>
+            <span></span>
+            <span class="">g</span>
+            <span class="">h</span>
+          </div>
+          <!-- Restart Action -->
+          <div
+            class="mt-16 flex justify-center opacity-50 hover:opacity-100 transition-opacity cursor-pointer"
+          >
+            <span
+              class="material-symbols-outlined text-sub-text hover:text-on-surface text-3xl"
+            >
+              refresh
+            </span>
+          </div>
+          <!-- Shortcuts Help (Desktop) -->
+          <div
+            class="hidden md:flex flex-col items-center mt-12 mb-lg text-sub-text font-label-mono text-label-mono text-[12px] gap-sm opacity-50"
+          >
+            <div class="flex items-center gap-2">
+              <span class="bg-surface-medium px-2 py-1 rounded text-on-surface">
+                tab
+              </span>
+              +
+              <span class="bg-surface-medium px-2 py-1 rounded text-on-surface">
+                enter
+              </span>
+              - restart test
+            </div>
+            <div class="flex items-center gap-2">
+              <span class="bg-surface-medium px-2 py-1 rounded text-on-surface">
+                escape
+              </span>
+              - command line
+            </div>
+          </div>
+        </div>
+      </div>
+      <aside
+        class="absolute right-0 top-0 bottom-0 w-64 hidden md:flex flex-col border-surface-medium p-lg gap-lg"
+      >
+        <div class="flex flex-col gap-md">
+          <div class="flex flex-col gap-xs">
+            <span
+              class="text-primary font-label-mono text-[11px] uppercase tracking-widest opacity-70"
+            >
+              Lesson Description
+            </span>
+            <div
+              class="flex items-center gap-sm text-on-surface font-headline-md text-[18px]"
+            >
+              <span class="material-symbols-outlined text-primary">
+                menu_book
+              </span>
+              Mastering the Home Row
+            </div>
+          </div>
+          <div class="flex flex-col gap-xs mt-md">
+            <span
+              class="text-sub-text font-label-mono text-[11px] uppercase tracking-widest opacity-70"
+            >
+              Lesson Progression
+            </span>
+            <div
+              class="flex flex-col gap-4 relative ml-2 border-l border-surface-medium py-2"
+            >
+              <div class="flex items-center gap-md -ml-[5px] opacity-40">
+                <div
+                  class="w-2 h-2 rounded-full bg-surface-medium ring-4 ring-background"
+                ></div>
+                <span class="text-sub-text font-body-md">2.1 Positioning</span>
+              </div>
+              <div class="flex items-center gap-md -ml-[5px]">
+                <div
+                  class="w-2 h-2 rounded-full bg-primary ring-4 ring-background"
+                ></div>
+                <span class="text-on-surface font-body-md">2.2 Home Row</span>
+              </div>
+              <div class="flex items-center gap-md -ml-[5px] opacity-40">
+                <div
+                  class="w-2 h-2 rounded-full bg-surface-medium ring-4 ring-background"
+                ></div>
+                <span class="text-sub-text font-body-md">2.3 Speed Drill</span>
+              </div>
+            </div>
+          </div>
+        </div>
+        <div
+          class="mt-auto flex flex-col gap-md border-t border-surface-medium pt-lg"
+        >
+          <div
+            class="flex justify-between items-center text-sub-text font-label-mono text-[12px]"
+          >
+            <span class="flex items-center gap-xs">
+              <span class="material-symbols-outlined text-[16px]">
+                language
+              </span>
+              english
+            </span>
+            <span class="text-on-surface font-bold">1 / 15</span>
+          </div>
+          <div
+            class="w-full bg-surface-medium h-1 rounded-full overflow-hidden"
+          >
+            <div class="bg-primary h-full w-[7%]"></div>
+          </div>
+        </div>
+      </aside>
+    </main>
+    <!-- Horizontal Footer Bar -->
+    <footer
+      class="w-full mt-auto py-md px-lg max-w-container-max mx-auto flex flex-col md:flex-row justify-between items-center text-sub-text font-label-mono text-label-mono text-[11px] gap-4"
+    >
+      <div class="flex flex-wrap items-center justify-center gap-4">
+        <a
+          class="flex items-center gap-1 hover:text-on-surface transition-colors"
+          href="#"
+        >
+          <span class="material-symbols-outlined text-[14px]">mail</span>
+          contact
+        </a>
+        <a
+          class="flex items-center gap-1 hover:text-on-surface transition-colors"
+          href="#"
+        >
+          <span class="material-symbols-outlined text-[14px]">
+            support_agent
+          </span>
+          support
+        </a>
+        <a
+          class="flex items-center gap-1 hover:text-on-surface transition-colors"
+          href="#"
+        >
+          <span class="material-symbols-outlined text-[14px]">code</span>
+          github
+        </a>
+        <a
+          class="flex items-center gap-1 hover:text-on-surface transition-colors"
+          href="#"
+        >
+          <span class="material-symbols-outlined text-[14px]">forum</span>
+          discord
+        </a>
+        <a
+          class="flex items-center gap-1 hover:text-on-surface transition-colors"
+          href="#"
+        >
+          <span class="material-symbols-outlined text-[14px]">
+            flutter_dash
+          </span>
+          twitter
+        </a>
+        <a
+          class="flex items-center gap-1 hover:text-on-surface transition-colors"
+          href="#"
+        >
+          <span class="material-symbols-outlined text-[14px]">description</span>
+          terms
+        </a>
+        <a
+          class="flex items-center gap-1 hover:text-on-surface transition-colors"
+          href="#"
+        >
+          <span class="material-symbols-outlined text-[14px]">security</span>
+          security
+        </a>
+        <a
+          class="flex items-center gap-1 hover:text-on-surface transition-colors"
+          href="#"
+        >
+          <span class="material-symbols-outlined text-[14px]">lock</span>
+          privacy
+        </a>
+      </div>
+      <div class="flex items-center gap-4">
+        <a
+          class="flex items-center gap-1 hover:text-on-surface transition-colors"
+          href="#"
+        >
+          <span class="material-symbols-outlined text-[14px]">palette</span>
+          monochrome velocity
+        </a>
+        <a
+          class="flex items-center gap-1 hover:text-on-surface transition-colors"
+          href="#"
+        >
+          <span class="material-symbols-outlined text-[14px]">merge</span>
+          v1.0.0
+        </a>
+      </div>
+    </footer>
+  </body>
+</html>
