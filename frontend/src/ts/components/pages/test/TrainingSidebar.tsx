@@ -39,7 +39,6 @@ export function TrainingSidebar(): JSXElement {
   const unitShortTitle = createMemo(() => {
     const num = currentUnit().unitNumber;
     const rawTitle = currentUnit().title;
-    // Format as "Unit X: Basics" or "Unit X: Home Row"
     const cleaned =
       rawTitle
         .split("&")[0]
@@ -51,85 +50,69 @@ export function TrainingSidebar(): JSXElement {
 
   return (
     <Show when={isTrainingActive()}>
-      <div
-        aria-label="Training Lesson Progression HUD"
-        class="animate-in fade-in mx-auto my-3 w-full max-w-4xl duration-200 select-none"
-      >
-        <div class="flex flex-wrap items-center justify-between gap-4 rounded-xl border border-sub-alt/40 bg-sub-alt/15 px-5 py-3 shadow-sm backdrop-blur-sm">
+      <div class="mx-auto mb-8 w-full max-w-5xl select-none">
+        <div class="flex w-full flex-col items-start justify-between gap-6 rounded-xl border border-sub-alt bg-sub-alt/20 p-4 shadow-sm backdrop-blur-sm lg:flex-row lg:items-center">
           {/* Left: Current Unit */}
-          <div class="flex shrink-0 flex-col gap-1 border-r border-sub-alt/30 pr-5">
-            <span class="font-mono text-[10px] font-bold tracking-wider text-main uppercase">
-              CURRENT UNIT
+          <div class="flex shrink-0 flex-col gap-1">
+            <span class="font-mono text-[11px] font-bold tracking-widest text-main uppercase opacity-80">
+              Current Unit
             </span>
-            <div class="flex items-center gap-2">
-              <Fa icon="fa-book-open" class="text-sm text-main" />
-              <span class="text-sm font-bold whitespace-nowrap text-text">
-                {unitShortTitle()}
-              </span>
+            <div class="flex items-center gap-2 text-lg font-bold text-text">
+              <Fa icon="fa-book-open" class="text-main" />
+              <span>{unitShortTitle()}</span>
             </div>
           </div>
 
           {/* Middle: Lesson Progression Horizontal Track */}
-          <div class="flex min-w-0 flex-1 flex-col gap-1 px-3">
-            <span class="font-mono text-[10px] font-bold tracking-wider text-sub/70 uppercase">
-              LESSON PROGRESSION
+          <div class="flex w-full max-w-2xl flex-1 flex-col gap-1">
+            <span class="font-mono text-[11px] font-bold tracking-widest text-sub uppercase opacity-80">
+              Lesson Progression
             </span>
-
-            {/* Horizontal Timeline Track */}
-            <div class="flex items-center gap-3 overflow-hidden">
+            <div class="mt-1 flex items-center gap-3">
               <For each={visibleStages()}>
                 {(stage, index) => {
                   const isActive = () => stage.id === currentStage().id;
 
                   return (
-                    <div class="flex shrink-0 items-center gap-3">
+                    <>
                       <button
                         type="button"
                         onClick={() =>
                           selectTrainingStage(currentUnit(), stage)
                         }
                         class={cn(
-                          "flex items-center gap-2 text-left transition-all",
+                          "flex items-center gap-2 whitespace-nowrap transition-all",
                           isActive()
                             ? "font-bold text-text"
-                            : "text-sub/70 hover:text-text",
+                            : "text-sub opacity-50 hover:text-text hover:opacity-100",
                         )}
                       >
-                        {/* Milestone dot */}
                         <div
                           class={cn(
-                            "h-2 w-2 shrink-0 rounded-full transition-all",
-                            isActive()
-                              ? "scale-110 bg-main ring-2 ring-main/30"
-                              : "bg-sub-alt",
+                            "h-3 w-3 shrink-0 rounded-full transition-all",
+                            isActive() ? "bg-main" : "bg-sub-alt",
                           )}
                         ></div>
-                        <span
-                          class={cn(
-                            "font-mono text-xs whitespace-nowrap transition-colors",
-                            isActive() ? "font-bold text-text" : "text-sub/70",
-                          )}
-                        >
+                        <span class="text-sm font-medium">
                           {stage.stageNumber} {stage.shortTitle}
                         </span>
                       </button>
 
-                      {/* Connecting line between stages */}
                       <Show when={index() < visibleStages().length - 1}>
-                        <div class="h-[1px] w-8 shrink-0 bg-sub-alt/60 sm:w-12"></div>
+                        <div class="h-[1px] min-w-[20px] flex-1 bg-sub-alt"></div>
                       </Show>
-                    </div>
+                    </>
                   );
                 }}
               </For>
             </div>
           </div>
 
-          {/* Right: Language + Counter + Progress Bar */}
-          <div class="flex w-32 shrink-0 flex-col gap-1.5 border-l border-sub-alt/30 pl-5 sm:w-36">
-            <div class="flex items-center justify-between font-mono text-xs">
-              <span class="flex items-center gap-1.5 text-sub/70">
-                <Fa icon="fa-globe" class="text-[10px]" /> english
+          {/* Right: Language + Progress Counter + Progress Bar */}
+          <div class="flex w-full min-w-[150px] shrink-0 flex-col gap-2 lg:w-auto">
+            <div class="flex items-center justify-between font-mono text-xs text-sub">
+              <span class="flex items-center gap-1">
+                <Fa icon="fa-globe" class="text-[14px]" /> english
               </span>
               <span class="font-bold text-text">
                 {currentIndex()} / {totalStages()}
@@ -137,7 +120,7 @@ export function TrainingSidebar(): JSXElement {
             </div>
 
             {/* Yellow Progress bar */}
-            <div class="h-[3px] w-full overflow-hidden rounded-full bg-sub-alt/40">
+            <div class="h-1 w-full overflow-hidden rounded-full bg-sub-alt">
               <div
                 class="h-full rounded-full bg-main transition-all duration-300"
                 style={{ width: `${progressPercent()}%` }}
