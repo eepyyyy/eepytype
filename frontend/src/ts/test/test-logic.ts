@@ -21,6 +21,7 @@ import * as TodayTracker from "./today-tracker";
 import * as ChallengeContoller from "../controllers/challenge-controller";
 import { clearQuoteStats } from "../states/quote-rate";
 import * as Result from "./result";
+import { isTrainingActive, advanceNextTrainingDrill } from "../states/training";
 import {
   getActivePage,
   getCustomTextIndicator,
@@ -94,7 +95,6 @@ import * as Sentry from "../sentry";
 import { showLoaderBar, hideLoaderBar } from "../states/loader-bar";
 import * as TestInitFailed from "../elements/test-init-failed";
 import { canQuickRestart } from "../utils/quick-restart";
-import { animate } from "animejs";
 import { setInputElementValue } from "../input/input-element";
 import { debounce } from "throttle-debounce";
 import { qs } from "../utils/dom";
@@ -808,6 +808,21 @@ function buildCompletedEvent(
   return completedEvent;
 }
 
+function countUndefined(input: unknown): number {
+  if (typeof input === "number") {
+    return isNaN(input) ? 1 : 0;
+  } else if (typeof input === "undefined") {
+    return 1;
+  } else if (typeof input === "object" && input !== null) {
+    return Object.values(input).reduce(
+      (a, b) => (a + countUndefined(b)) as number,
+      0,
+    ) as number;
+  } else {
+    return 0;
+  }
+}
+
 export async function finish(difficultyFailed = false): Promise<void> {
   if (!isTestActive()) return;
   setResultCalculating(true);
@@ -825,265 +840,263 @@ export async function finish(difficultyFailed = false): Promise<void> {
   qs(".pageTest .loading")?.show();
   await Misc.sleep(0); //allow ui update
 
-  TestUI.onTestFinish();
+  try {
+    TestUI.onTestFinish();
 
-  if (isRepeated() && Config.mode === "quote") {
-    setIsRepeated(false);
-  }
-
-  forceReleaseAllKeys();
-
-  setResultVisible(true);
-  setTestActive(false);
-
-  cleanupData();
-
-  if (isDevEnvironment()) {
-    logEventsDataToTheConsoleTable();
-  }
-
-  const eventLog = buildEventLog();
-  const ce = buildCompletedEvent(eventLog);
-  PaceCaret.setLastTestWpm(ce.wpm);
-
-  console.debug("Completed event object", ce);
-
-  function countUndefined(input: unknown): number {
-    if (typeof input === "number") {
-      return isNaN(input) ? 1 : 0;
-    } else if (typeof input === "undefined") {
-      return 1;
-    } else if (typeof input === "object" && input !== null) {
-      return Object.values(input).reduce(
-        (a, b) => (a + countUndefined(b)) as number,
-        0,
-      ) as number;
-    } else {
-      return 0;
+    if (isRepeated() && Config.mode === "quote") {
+      setIsRepeated(false);
     }
-  }
 
-  let dontSave = false;
+    forceReleaseAllKeys();
 
-  if (countUndefined(ce) > 0) {
-    console.log(ce);
-    showErrorNotification(
-      "Failed to build result object: One of the fields is undefined or NaN",
-    );
-    dontSave = true;
-  }
+    setResultVisible(true);
+    setTestActive(false);
 
-  const completedEvent = structuredClone(ce) as CompletedEvent;
+    cleanupData();
 
-  setLastEventLog(eventLog);
-  setLastResult(structuredClone(completedEvent));
-
-  ///////// completed event ready
-
-  //afk check
-  let afkDetected = getKeypressesPerSecond(eventLog)
-    .slice(-5)
-    .every((kps) => kps === 0);
-  if (getBailedOut()) afkDetected = false;
-
-  const mode2Number = parseInt(completedEvent.mode2);
-
-  let tooShort = false;
-  //fail checks
-  const dateDur = getDateBasedTestDurationMs(eventLog) / 1000;
-  if (
-    Config.mode === "time" &&
-    !getBailedOut() &&
-    (ce.testDuration < dateDur - 0.1 || ce.testDuration > dateDur + 0.1) &&
-    ce.testDuration <= 120
-  ) {
-    showNoticeNotification("Test invalid - inconsistent test duration");
-    console.error("Test duration inconsistent", ce.testDuration, dateDur);
-    setIsTestInvalid(true);
-    dontSave = true;
-  } else if (difficultyFailed) {
-    showNoticeNotification(`Test failed - ${failReason}`, {
-      durationMs: 1000,
-    });
-    dontSave = true;
-  } else if (
-    completedEvent.testDuration < 1 ||
-    (Config.mode === "time" && mode2Number < 15 && mode2Number > 0) ||
-    (Config.mode === "time" &&
-      mode2Number === 0 &&
-      completedEvent.testDuration < 15) ||
-    (Config.mode === "words" && mode2Number < 10 && mode2Number > 0) ||
-    (Config.mode === "words" &&
-      mode2Number === 0 &&
-      completedEvent.testDuration < 15) ||
-    (Config.mode === "custom" &&
-      (CustomText.getLimitMode() === "word" ||
-        CustomText.getLimitMode() === "section") &&
-      CustomText.getLimitValue() < 10) ||
-    (Config.mode === "custom" &&
-      CustomText.getLimitMode() === "time" &&
-      CustomText.getLimitValue() < 15) ||
-    (Config.mode === "zen" && completedEvent.testDuration < 15)
-  ) {
-    showNoticeNotification("Test invalid - too short");
-    setIsTestInvalid(true);
-    tooShort = true;
-    dontSave = true;
-  } else if (afkDetected) {
-    showNoticeNotification("Test invalid - AFK detected");
-    setIsTestInvalid(true);
-    dontSave = true;
-  } else if (isRepeated()) {
-    showNoticeNotification("Test invalid - repeated");
-    setIsTestInvalid(true);
-    dontSave = true;
-  } else if (
-    completedEvent.wpm < 0 ||
-    (completedEvent.wpm > 350 &&
-      completedEvent.mode !== "words" &&
-      completedEvent.mode2 !== "10") ||
-    (completedEvent.wpm > 420 &&
-      completedEvent.mode === "words" &&
-      completedEvent.mode2 === "10")
-  ) {
-    showNoticeNotification("Test invalid - wpm");
-    setIsTestInvalid(true);
-    dontSave = true;
-  } else if (
-    completedEvent.rawWpm < 0 ||
-    (completedEvent.rawWpm > 350 &&
-      completedEvent.mode !== "words" &&
-      completedEvent.mode2 !== "10") ||
-    (completedEvent.rawWpm > 420 &&
-      completedEvent.mode === "words" &&
-      completedEvent.mode2 === "10")
-  ) {
-    showNoticeNotification("Test invalid - raw");
-    setIsTestInvalid(true);
-    dontSave = true;
-  } else if (
-    (!DB.getSnapshot()?.lbOptOut &&
-      (completedEvent.acc < 75 || completedEvent.acc > 100)) ||
-    (DB.getSnapshot()?.lbOptOut === true &&
-      (completedEvent.acc < 50 || completedEvent.acc > 100))
-  ) {
-    showNoticeNotification("Test invalid - accuracy");
-    setIsTestInvalid(true);
-    dontSave = true;
-  }
-
-  // test is valid
-
-  if (isRepeated() || difficultyFailed) {
-    if (Config.resultSaving) {
-      pushIncompleteTest({
-        acc: completedEvent.acc,
-        seconds: getIncompleteTestSeconds(eventLog),
-      });
+    if (isDevEnvironment()) {
+      logEventsDataToTheConsoleTable();
     }
-  }
 
-  const customTextName = getCustomTextIndicator()?.name ?? "";
-  const isLong = getCustomTextIndicator()?.isLong === true;
-  if (Config.mode === "custom" && customTextName !== "" && isLong) {
-    // Let's update the custom text progress
+    const eventLog = buildEventLog();
+    const ce = buildCompletedEvent(eventLog);
+    PaceCaret.setLastTestWpm(ce.wpm);
+
+    console.debug("Completed event object", ce);
+
+    let dontSave = false;
+
+    if (countUndefined(ce) > 0) {
+      console.log(ce);
+      showErrorNotification(
+        "Failed to build result object: One of the fields is undefined or NaN",
+      );
+      dontSave = true;
+    }
+
+    const completedEvent = structuredClone(ce) as CompletedEvent;
+
+    setLastEventLog(eventLog);
+    setLastResult(structuredClone(completedEvent));
+
+    ///////// completed event ready
+
+    //afk check
+    let afkDetected = getKeypressesPerSecond(eventLog)
+      .slice(-5)
+      .every((kps) => kps === 0);
+    if (getBailedOut()) afkDetected = false;
+
+    const mode2Number = parseInt(completedEvent.mode2);
+
+    let tooShort = false;
+    //fail checks
+    const dateDur = getDateBasedTestDurationMs(eventLog) / 1000;
     if (
-      getBailedOut() ||
-      getInputHistory(eventLog).length < TestWords.words.length
+      Config.mode === "time" &&
+      !getBailedOut() &&
+      (ce.testDuration < dateDur - 0.1 || ce.testDuration > dateDur + 0.1) &&
+      ce.testDuration <= 120
     ) {
-      // They bailed out
+      showNoticeNotification("Test invalid - inconsistent test duration");
+      console.error("Test duration inconsistent", ce.testDuration, dateDur);
+      setIsTestInvalid(true);
+      dontSave = true;
+    } else if (difficultyFailed) {
+      showNoticeNotification(`Test failed - ${failReason}`, {
+        durationMs: 1000,
+      });
+      dontSave = true;
+    } else if (
+      completedEvent.testDuration < 1 ||
+      (Config.mode === "time" && mode2Number < 15 && mode2Number > 0) ||
+      (Config.mode === "time" &&
+        mode2Number === 0 &&
+        completedEvent.testDuration < 15) ||
+      (Config.mode === "words" && mode2Number < 10 && mode2Number > 0) ||
+      (Config.mode === "words" &&
+        mode2Number === 0 &&
+        completedEvent.testDuration < 15) ||
+      (Config.mode === "custom" &&
+        (CustomText.getLimitMode() === "word" ||
+          CustomText.getLimitMode() === "section") &&
+        CustomText.getLimitValue() < 10) ||
+      (Config.mode === "custom" &&
+        CustomText.getLimitMode() === "time" &&
+        CustomText.getLimitValue() < 15) ||
+      (Config.mode === "zen" && completedEvent.testDuration < 15)
+    ) {
+      showNoticeNotification("Test invalid - too short");
+      setIsTestInvalid(true);
+      tooShort = true;
+      dontSave = true;
+    } else if (afkDetected) {
+      showNoticeNotification("Test invalid - AFK detected");
+      setIsTestInvalid(true);
+      dontSave = true;
+    } else if (isRepeated()) {
+      showNoticeNotification("Test invalid - repeated");
+      setIsTestInvalid(true);
+      dontSave = true;
+    } else if (
+      completedEvent.wpm < 0 ||
+      (completedEvent.wpm > 350 &&
+        completedEvent.mode !== "words" &&
+        completedEvent.mode2 !== "10") ||
+      (completedEvent.wpm > 420 &&
+        completedEvent.mode === "words" &&
+        completedEvent.mode2 === "10")
+    ) {
+      showNoticeNotification("Test invalid - wpm");
+      setIsTestInvalid(true);
+      dontSave = true;
+    } else if (
+      completedEvent.rawWpm < 0 ||
+      (completedEvent.rawWpm > 350 &&
+        completedEvent.mode !== "words" &&
+        completedEvent.mode2 !== "10") ||
+      (completedEvent.rawWpm > 420 &&
+        completedEvent.mode === "words" &&
+        completedEvent.mode2 === "10")
+    ) {
+      showNoticeNotification("Test invalid - raw");
+      setIsTestInvalid(true);
+      dontSave = true;
+    } else if (
+      (!DB.getSnapshot()?.lbOptOut &&
+        (completedEvent.acc < 75 || completedEvent.acc > 100)) ||
+      (DB.getSnapshot()?.lbOptOut === true &&
+        (completedEvent.acc < 50 || completedEvent.acc > 100))
+    ) {
+      showNoticeNotification("Test invalid - accuracy");
+      setIsTestInvalid(true);
+      dontSave = true;
+    }
 
-      const history = getInputHistory(eventLog);
-      let historyLength = history?.length;
-      const wordIndex = historyLength - 1;
+    // test is valid
 
-      const lastWordInputLength = history[wordIndex]?.length ?? 0;
+    if (isRepeated() || difficultyFailed) {
+      if (Config.resultSaving) {
+        pushIncompleteTest({
+          acc: completedEvent.acc,
+          seconds: getIncompleteTestSeconds(eventLog),
+        });
+      }
+    }
 
-      // compare against display.length (not textWithCommit.length): the input
-      // history holds the typed letters, not the committing space separator, so
-      // a space word is "complete" at text.length. display includes a newline
-      // commit, which is a required typed char.
+    const customTextName = getCustomTextIndicator()?.name ?? "";
+    const isLong = getCustomTextIndicator()?.isLong === true;
+    if (Config.mode === "custom" && customTextName !== "" && isLong) {
+      // Let's update the custom text progress
       if (
-        lastWordInputLength <
-        (TestWords.words.get(wordIndex)?.display.length ?? 0)
+        getBailedOut() ||
+        getInputHistory(eventLog).length < TestWords.words.length
       ) {
-        historyLength--;
-      }
+        // They bailed out
 
-      const newProgress =
-        CustomText.getCustomTextLongProgress(customTextName) + historyLength;
-      CustomText.setCustomTextLongProgress(customTextName, newProgress);
-      showSuccessNotification("Long custom text progress saved", {
-        durationMs: 5000,
-        important: true,
-      });
+        const history = getInputHistory(eventLog);
+        let historyLength = history?.length;
+        const wordIndex = historyLength - 1;
 
-      let newText = CustomText.getCustomText(customTextName, true);
-      newText = newText.slice(newProgress);
-      CustomText.setText(newText);
-    } else {
-      // They finished the test
-      CustomText.setCustomTextLongProgress(customTextName, 0);
-      const text = CustomText.getCustomText(customTextName, true);
-      CustomText.setText(text);
-      showSuccessNotification("Long custom text completed", {
-        durationMs: 5000,
-        important: true,
-      });
-    }
-  }
+        const lastWordInputLength = history[wordIndex]?.length ?? 0;
 
-  TodayTracker.addSeconds(
-    completedEvent.testDuration - completedEvent.afkDuration,
-  );
-  Result.updateTodayTracker();
-
-  let savingResultPromise: ReturnType<typeof saveResult> =
-    Promise.resolve(null);
-  const user = getAuthenticatedUser();
-  if (user !== null) {
-    // logged in
-    if (dontSave) {
-      void AnalyticsController.log("testCompletedInvalid");
-    } else {
-      resetIncompleteTests();
-
-      if (!completedEvent.bailedOut) {
-        const challenge = ChallengeContoller.verify(completedEvent);
-        if (challenge !== null) completedEvent.challenge = challenge;
-      }
-
-      completedEvent.uid = user.uid;
-
-      savingResultPromise = saveResult(completedEvent, false);
-      void savingResultPromise.then((response) => {
-        if (response?.status === 200) {
-          void AnalyticsController.log("testCompleted");
+        // compare against display.length (not textWithCommit.length): the input
+        // history holds the typed letters, not the committing space separator, so
+        // a space word is "complete" at text.length. display includes a newline
+        // commit, which is a required typed char.
+        if (
+          lastWordInputLength <
+          (TestWords.words.get(wordIndex)?.display.length ?? 0)
+        ) {
+          historyLength--;
         }
-      });
+
+        const newProgress =
+          CustomText.getCustomTextLongProgress(customTextName) + historyLength;
+        CustomText.setCustomTextLongProgress(customTextName, newProgress);
+        showSuccessNotification("Long custom text progress saved", {
+          durationMs: 5000,
+          important: true,
+        });
+
+        let newText = CustomText.getCustomText(customTextName, true);
+        newText = newText.slice(newProgress);
+        CustomText.setText(newText);
+      } else {
+        // They finished the test
+        CustomText.setCustomTextLongProgress(customTextName, 0);
+        const text = CustomText.getCustomText(customTextName, true);
+        CustomText.setText(text);
+        showSuccessNotification("Long custom text completed", {
+          durationMs: 5000,
+          important: true,
+        });
+      }
     }
-  } else {
-    // logged out
-    void AnalyticsController.log("testCompletedNoLogin");
-    if (!dontSave) {
-      // if its valid save it for later
-      setLastSignedOutResult(completedEvent);
+
+    TodayTracker.addSeconds(
+      completedEvent.testDuration - completedEvent.afkDuration,
+    );
+    Result.updateTodayTracker();
+
+    let savingResultPromise: ReturnType<typeof saveResult> =
+      Promise.resolve(null);
+    const user = getAuthenticatedUser();
+    if (user !== null) {
+      // logged in
+      if (dontSave) {
+        void AnalyticsController.log("testCompletedInvalid");
+      } else {
+        resetIncompleteTests();
+
+        if (!completedEvent.bailedOut) {
+          const challenge = ChallengeContoller.verify(completedEvent);
+          if (challenge !== null) completedEvent.challenge = challenge;
+        }
+
+        completedEvent.uid = user.uid;
+
+        savingResultPromise = saveResult(completedEvent, false).catch(
+          (err: unknown) => {
+            console.error("Failed to save result:", err);
+            return null;
+          },
+        );
+        void savingResultPromise.then((response) => {
+          if (response?.status === 200) {
+            void AnalyticsController.log("testCompleted");
+          }
+        });
+      }
+    } else {
+      // logged out
+      void AnalyticsController.log("testCompletedNoLogin");
+      if (!dontSave) {
+        // if its valid save it for later
+        setLastSignedOutResult(completedEvent);
+      }
+      dontSave = true;
     }
-    dontSave = true;
+
+    const resultUpdatePromise = Result.update(
+      completedEvent,
+      difficultyFailed,
+      failReason,
+      afkDetected,
+      isRepeated(),
+      tooShort,
+      getCurrentQuote(),
+      dontSave,
+    );
+
+    await Promise.all([savingResultPromise, resultUpdatePromise]);
+  } catch (error) {
+    console.error("Error during finish test:", error);
+    showErrorNotification("Error loading result screen");
+    qs(".pageTest .loading")?.hide();
+    qs("#result")?.show();
+    setResultCalculating(false);
   }
-
-  const resultUpdatePromise = Result.update(
-    completedEvent,
-    difficultyFailed,
-    failReason,
-    afkDetected,
-    isRepeated(),
-    tooShort,
-    getCurrentQuote(),
-    dontSave,
-  );
-
-  await Promise.all([savingResultPromise, resultUpdatePromise]);
 }
 
 async function saveResult(
@@ -1199,22 +1212,24 @@ async function saveResult(
 
   const dailyLeaderboardEl = document.querySelector(
     "#result .stats .dailyLeaderboard",
-  ) as HTMLElement;
+  ) as HTMLElement | null;
 
-  if (data.dailyLeaderboardRank === undefined) {
-    dailyLeaderboardEl.classList.add("hidden");
-  } else {
-    dailyLeaderboardEl.classList.remove("hidden");
-    dailyLeaderboardEl.style.maxWidth = "13rem";
+  if (dailyLeaderboardEl) {
+    if (data.dailyLeaderboardRank === undefined) {
+      dailyLeaderboardEl.classList.add("hidden");
+    } else {
+      dailyLeaderboardEl.classList.remove("hidden");
+      dailyLeaderboardEl.style.maxWidth = "13rem";
 
-    animate(dailyLeaderboardEl, {
-      opacity: [0, 1],
-      duration: Misc.applyReducedMotion(250),
-    });
+      void Misc.promiseAnimate(dailyLeaderboardEl, {
+        opacity: [0, 1],
+        duration: Misc.applyReducedMotion(250),
+      });
 
-    qs("#result .stats .dailyLeaderboard .bottom")?.setHtml(
-      Format.rank(data.dailyLeaderboardRank, { fallback: "" }),
-    );
+      qs("#result .stats .dailyLeaderboard .bottom")?.setHtml(
+        Format.rank(data.dailyLeaderboardRank, { fallback: "" }),
+      );
+    }
   }
 
   qs("#retrySavingResultButton")?.hide();
@@ -1280,7 +1295,11 @@ qs(".pageTest")?.onChild(
 );
 
 qs(".pageTest")?.onChild("click", "#nextTestButton", () => {
-  void restart();
+  if (isTrainingActive()) {
+    advanceNextTrainingDrill();
+  } else {
+    void restart();
+  }
 });
 
 qs(".pageTest")?.onChild("click", "#restartTestButtonWithSameWordset", () => {

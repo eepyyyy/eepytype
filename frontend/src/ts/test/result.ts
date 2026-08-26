@@ -127,9 +127,14 @@ async function updateChartData(): Promise<void> {
     Numbers.roundTo2(typingSpeedUnit.fromWpm(a)),
   );
 
-  const valueWindow = Math.max(...result.chartData.burst) * 0.25;
+  const burstData = result.chartData.burst;
+  const validBurst = burstData.filter(
+    (v) => typeof v === "number" && !isNaN(v) && isFinite(v),
+  );
+  const maxBurst = validBurst.length > 0 ? Math.max(...validBurst) : 0;
+  const valueWindow = maxBurst * 0.25;
   let smoothedBurst = Arrays.smoothWithValueWindow(
-    result.chartData.burst,
+    burstData,
     1,
     useSmoothedBurst ? valueWindow : 0,
   );
@@ -1136,7 +1141,7 @@ const resultChartDataVisibility = new LocalStorageWithSchema({
 });
 
 function updateMinMaxChartValues(): void {
-  const values = [];
+  const values: number[] = [];
 
   const datasets = {
     wpm: ChartController.result.getDataset("wpm"),
@@ -1154,18 +1159,20 @@ function updateMinMaxChartValues(): void {
     values.push(...datasets.raw.data);
   }
 
-  maxChartVal = Math.max(...values);
+  const validValues = values.filter(
+    (v) => typeof v === "number" && !isNaN(v) && isFinite(v),
+  );
+  maxChartVal = validValues.length > 0 ? Math.max(...validValues) : 0;
 
   let maxAnnotation: null | number = null;
   for (const annotation of resultAnnotation) {
     if ((annotation.display ?? false) === false) continue;
     if (annotation.value === undefined) continue;
-    // values.push(annotation.value as number);
-    if (
-      maxAnnotation === null ||
-      parseFloat(annotation.value as string) > maxAnnotation
-    ) {
-      maxAnnotation = parseFloat(annotation.value as string);
+    const parsed = parseFloat(annotation.value as string);
+    if (!isNaN(parsed) && isFinite(parsed)) {
+      if (maxAnnotation === null || parsed > maxAnnotation) {
+        maxAnnotation = parsed;
+      }
     }
   }
 
@@ -1181,14 +1188,18 @@ function updateMinMaxChartValues(): void {
   }
 
   maxChartVal = Math.ceil(maxChartVal / 10) * 10;
+  if (isNaN(maxChartVal) || !isFinite(maxChartVal) || maxChartVal < 0) {
+    maxChartVal = 100;
+  }
 
   minChartVal = 0;
 
-  if (!Config.startGraphsAtZero) {
-    minChartVal = Math.min(...values);
-
-    // Round down to nearest multiple of 10
+  if (!Config.startGraphsAtZero && validValues.length > 0) {
+    minChartVal = Math.min(...validValues);
     minChartVal = Math.floor(minChartVal / 10) * 10;
+    if (isNaN(minChartVal) || !isFinite(minChartVal) || minChartVal < 0) {
+      minChartVal = 0;
+    }
   }
 }
 
