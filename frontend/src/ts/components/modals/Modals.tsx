@@ -9,6 +9,7 @@ import { CustomWordAmountModal } from "./CustomWordAmountModal";
 import { EditResultTagsModal } from "./EditResultTagsModal";
 import { ForgotPasswordModal } from "./ForgotPasswordModal";
 import { GoogleSignupModal } from "./GoogleSignUpModal";
+import { KeybrSettingsModal } from "./KeybrSettingsModal";
 import { LastSignedOutResultModal } from "./LastSignedOutResultModal";
 import { MobileTestConfigModal } from "./MobileTestConfigModal";
 import { PbTablesModal } from "./PbTablesModal";
@@ -36,6 +37,7 @@ export function Modals(): JSXElement {
       <SimpleModal />
       <CustomTextModal />
       <TrainingModal />
+      <KeybrSettingsModal />
       <QuoteRateModal />
       <QuoteReportModal />
       <QuoteSearchModal />

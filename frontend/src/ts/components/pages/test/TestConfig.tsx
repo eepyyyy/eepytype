@@ -7,6 +7,7 @@ import { restartTestEvent } from "../../../events/test";
 import { createEffectOn } from "../../../hooks/effects";
 import { useRefWithUtils } from "../../../hooks/useRefWithUtils";
 import { isAuthenticated } from "../../../states/core";
+import { isKeybrActive, setKeybrMode } from "../../../states/keybr";
 import { showModal } from "../../../states/modals";
 import { getResultVisible, getFocus } from "../../../states/test";
 import { FaObject } from "../../../types/font-awesome";
@@ -134,8 +135,9 @@ function Mode(): JSXElement {
               configMetadata.mode.optionsMetadata?.[modeOption]
                 ?.displayString ?? modeOption
             }
-            active={getConfig.mode === modeOption}
+            active={getConfig.mode === modeOption && !isKeybrActive()}
             onClick={() => {
+              setKeybrMode(false);
               setConfig("mode", modeOption);
               restartTestEvent.dispatch();
             }}
@@ -151,9 +153,14 @@ function Mode(): JSXElement {
       />
       <TCButton
         fa={{ icon: "fa-graduation-cap" }}
-        text="training"
+        text="keybr"
+        active={isKeybrActive()}
         onClick={() => {
-          showModal("TrainingModal");
+          if (!isKeybrActive()) {
+            setKeybrMode(true);
+          } else {
+            showModal("KeybrSettingsModal");
+          }
         }}
       />
     </div>

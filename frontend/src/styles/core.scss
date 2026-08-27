@@ -407,3 +407,25 @@ table {
     background-color: var(--sub-alt-color);
   }
 }
+
+// Keybr mode overrides to ensure legacy test elements, keymap, and carets are hidden
+body:has(.keybr-mode-active) #keymap,
+body:has(.keybr-mode-active) mount[data-component="keymap"],
+body:has(.keybr-mode-active) #wordsWrapper,
+body:has(.keybr-mode-active) #caret,
+body:has(.keybr-mode-active) #paceCaret,
+body:has(.keybr-mode-active) #liveStatsTextTop,
+body:has(.keybr-mode-active) #liveStatsMini,
+body:has(.keybr-mode-active) #restartTestButton,
+body:has(.keybr-mode-active) #testModesNotice,
+.keybr-mode-active #keymap,
+.keybr-mode-active mount[data-component="keymap"],
+.keybr-mode-active #wordsWrapper,
+.keybr-mode-active #caret,
+.keybr-mode-active #paceCaret,
+.keybr-mode-active #liveStatsTextTop,
+.keybr-mode-active #liveStatsMini,
+.keybr-mode-active #restartTestButton,
+.keybr-mode-active #testModesNotice {
+  display: none !important;
+}

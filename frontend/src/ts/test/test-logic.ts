@@ -22,6 +22,7 @@ import * as ChallengeContoller from "../controllers/challenge-controller";
 import { clearQuoteStats } from "../states/quote-rate";
 import * as Result from "./result";
 import { isTrainingActive, advanceNextTrainingDrill } from "../states/training";
+import { isKeybrActive, completeKeybrLesson } from "../states/keybr";
 import {
   getActivePage,
   getCustomTextIndicator,
@@ -984,6 +985,18 @@ export async function finish(difficultyFailed = false): Promise<void> {
       }
     }
 
+    if (isKeybrActive()) {
+      completeKeybrLesson(
+        completedEvent.wpm,
+        completedEvent.acc / 100,
+        completedEvent.testDuration - completedEvent.afkDuration,
+        {},
+        {},
+      );
+      setResultCalculating(false);
+      return;
+    }
+
     const customTextName = getCustomTextIndicator()?.name ?? "";
     const isLong = getCustomTextIndicator()?.isLong === true;
     if (Config.mode === "custom" && customTextName !== "" && isLong) {
@@ -1210,9 +1223,9 @@ async function saveResult(
     Result.showErrorCrownIfNeeded();
   }
 
-  const dailyLeaderboardEl = document.querySelector(
+  const dailyLeaderboardEl = document.querySelector<HTMLElement>(
     "#result .stats .dailyLeaderboard",
-  ) as HTMLElement | null;
+  );
 
   if (dailyLeaderboardEl) {
     if (data.dailyLeaderboardRank === undefined) {

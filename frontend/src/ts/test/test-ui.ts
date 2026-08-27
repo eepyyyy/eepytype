@@ -40,6 +40,7 @@ import {
   isInputElementFocused,
 } from "../input/input-element";
 import * as MonkeyPower from "../elements/monkey-power";
+import { isKeybrActive, recordKeystroke } from "../states/keybr";
 import * as SlowTimer from "../legacy-states/slow-timer";
 import * as AdController from "../controllers/ad-controller";
 import * as Joining from "./break-joining";
@@ -1689,6 +1690,8 @@ function afterAnyTestInput(
   Caret.updatePosition();
 }
 
+let lastKeybrKeystrokeTime = 0;
+
 export function afterTestTextInput(
   correct: boolean,
   inputOverride?: string,
@@ -1699,6 +1702,19 @@ export function afterTestTextInput(
   let input = inputOverride ?? getCurrentInput();
   if (goingToNextWord) {
     input = input.replace(/ $/, "");
+  }
+
+  if (isKeybrActive()) {
+    const lastChar = input.slice(-1);
+    if (lastChar !== "") {
+      const now = Date.now();
+      const delta =
+        lastKeybrKeystrokeTime > 0
+          ? Math.min(2000, now - lastKeybrKeystrokeTime)
+          : 250;
+      lastKeybrKeystrokeTime = now;
+      recordKeystroke(lastChar, delta, correct);
+    }
   }
 
   void updateWordLetters({

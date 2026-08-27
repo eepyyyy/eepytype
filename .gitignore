@@ -141,3 +141,6 @@ frontend/.env.sentry-build-plugin
 .claude/worktrees
 1024MiB
 .pnpm-store
+keybr.com/
+*.har
+touchtyping_extracted_raw.txt
