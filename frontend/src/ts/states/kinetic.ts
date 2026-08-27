@@ -120,6 +120,8 @@ export const [kineticRecentTransitions, setKineticRecentTransitions] =
   createSignal<KineticTransitionTrace[]>([]);
 export const [ghostPacerProgress, setGhostPacerProgress] =
   createSignal<number>(0);
+export const [isKineticPaused, setIsKineticPaused] =
+  createSignal<boolean>(false);
 
 export type LiveKineticDiagnostics = {
   lastIklMs: number;
@@ -155,6 +157,9 @@ let drillTotalHits = 0;
 let drillTotalMisses = 0;
 let lastTypedChar = "";
 let ghostPacerTimer: ReturnType<typeof setInterval> | null = null;
+let idleTimer: ReturnType<typeof setTimeout> | null = null;
+let pausedAtTimestamp = 0;
+const IDLE_TIMEOUT_MS = 2500;
 
 // Load persisted kinetic state
 export function loadKineticState(): void {
@@ -308,33 +313,89 @@ export function calculateProjectedMilestones(
   };
 }
 
-// Start Ghost Pacer animation
-function startGhostPacer(targetWpm: number, textLength: number): void {
+// Start / Resume Ghost Pacer animation
+export function pauseGhostPacer(): void {
   if (ghostPacerTimer !== null) {
     clearInterval(ghostPacerTimer);
     ghostPacerTimer = null;
   }
-  setGhostPacerProgress(0);
+}
 
-  // Characters per second: WPM * 5 chars / 60s
+export function resumeGhostPacer(): void {
+  pauseGhostPacer();
+  if (
+    !isKineticActive() ||
+    isKineticPaused() ||
+    !kineticSettings().ghostPacer
+  ) {
+    return;
+  }
+
+  const targetWpm = Math.max(45, kineticSettings().targetWpm + 5);
+  const textLength = activeDrillText().length;
+  if (textLength === 0) return;
+
   const charsPerSec = (targetWpm * 5) / 60;
   const updateIntervalMs = 50;
   const charStep = (charsPerSec * updateIntervalMs) / 1000;
 
   ghostPacerTimer = setInterval(() => {
-    if (!isKineticActive()) {
-      if (ghostPacerTimer !== null) clearInterval(ghostPacerTimer);
+    if (!isKineticActive() || isKineticPaused()) {
+      pauseGhostPacer();
       return;
     }
     setGhostPacerProgress((prev) => {
       const next = prev + charStep;
       if (next >= textLength) {
-        if (ghostPacerTimer !== null) clearInterval(ghostPacerTimer);
+        pauseGhostPacer();
         return textLength;
       }
       return next;
     });
   }, updateIntervalMs);
+}
+
+export function pauseKineticDrill(): void {
+  if (!isKineticActive() || isKineticPaused() || drillStartTime === 0) {
+    return;
+  }
+  setIsKineticPaused(true);
+  pausedAtTimestamp = performance.now();
+  pauseGhostPacer();
+  if (idleTimer !== null) {
+    clearTimeout(idleTimer);
+    idleTimer = null;
+  }
+}
+
+export function resumeKineticDrill(): void {
+  if (!isKineticPaused()) {
+    return;
+  }
+  setIsKineticPaused(false);
+  const now = performance.now();
+  if (pausedAtTimestamp > 0) {
+    const idleDuration = now - pausedAtTimestamp;
+    if (currentWordLog.wordDisplayedTimestamp > 0) {
+      currentWordLog.wordDisplayedTimestamp += idleDuration;
+    }
+    pausedAtTimestamp = 0;
+  }
+  resumeGhostPacer();
+  resetIdleTimer();
+}
+
+function resetIdleTimer(): void {
+  if (idleTimer !== null) {
+    clearTimeout(idleTimer);
+  }
+  if (!isKineticActive() || drillStartTime === 0) {
+    idleTimer = null;
+    return;
+  }
+  idleTimer = setTimeout(() => {
+    pauseKineticDrill();
+  }, IDLE_TIMEOUT_MS);
 }
 
 // Start a new Predictive Kinetic Drill
@@ -444,16 +505,25 @@ function initDrillWithWords(
   setStreakCount(0);
   setKineticDepressedKeys([]);
   setKineticRecentTransitions([]);
+  setIsKineticPaused(false);
 
   drillStartTime = 0;
   drillTotalHits = 0;
   drillTotalMisses = 0;
   lastTypedChar = "";
+  pausedAtTimestamp = 0;
+
+  setGhostPacerProgress(0);
+  pauseGhostPacer();
+  if (idleTimer !== null) {
+    clearTimeout(idleTimer);
+    idleTimer = null;
+  }
 
   const firstWord = words[0] ?? "";
   currentWordLog = {
     word: firstWord,
-    wordDisplayedTimestamp: performance.now(),
+    wordDisplayedTimestamp: 0,
     keystrokes: [],
   };
 
@@ -473,9 +543,6 @@ function initDrillWithWords(
   restartTestEvent.dispatch();
   hideModal("TrainingModal");
   hideModal("KineticSettingsModal");
-
-  const pacerWpm = Math.max(45, kineticSettings().targetWpm + 5);
-  startGhostPacer(pacerWpm, joinedText.length);
 }
 
 // Handle real-time input for Kinetic Drill
@@ -499,6 +566,10 @@ export function handleKineticInput(event: KeyboardEvent): void {
 
   event.preventDefault();
 
+  if (isKineticPaused()) {
+    resumeKineticDrill();
+  }
+
   const keyChar = event.key.toLowerCase();
   setKineticDepressedKeys((prev) =>
     prev.includes(keyChar) ? prev : [...prev, keyChar],
@@ -516,7 +587,10 @@ export function handleKineticInput(event: KeyboardEvent): void {
   const now = performance.now();
   if (drillStartTime === 0) {
     drillStartTime = now;
+    currentWordLog.wordDisplayedTimestamp = now - 200;
+    resumeGhostPacer();
   }
+  resetIdleTimer();
 
   // Emit visual transition vector
   if (lastTypedChar !== "") {
@@ -683,9 +757,11 @@ export function setKineticMode(active: boolean): void {
     loadKineticState();
     void startKineticDrill();
   } else {
-    if (ghostPacerTimer !== null) {
-      clearInterval(ghostPacerTimer);
-      ghostPacerTimer = null;
+    pauseGhostPacer();
+    if (idleTimer !== null) {
+      clearTimeout(idleTimer);
+      idleTimer = null;
     }
+    setIsKineticPaused(false);
   }
 }

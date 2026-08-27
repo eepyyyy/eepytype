@@ -16,9 +16,12 @@ import {
   handleKineticInput,
   handleKineticKeyUp,
   isKineticActive,
+  isKineticPaused,
   kineticSettings,
+  pauseKineticDrill,
 } from "../../../../states/kinetic";
 import { cn } from "../../../../utils/cn";
+import { Fa } from "../../../common/Fa";
 import { KineticDiagnostics } from "./KineticDiagnostics";
 import { KineticKeyboard } from "./KineticKeyboard";
 import { KineticSidebarStats } from "./KineticSidebarStats";
@@ -71,12 +74,20 @@ export function KineticContainer(): JSXElement {
       handleKineticKeyUp(e);
     };
 
+    const onBlur = () => {
+      if (isKineticActive()) {
+        pauseKineticDrill();
+      }
+    };
+
     window.addEventListener("keydown", onKeyDown, { capture: true });
     window.addEventListener("keyup", onKeyUp, { capture: true });
+    window.addEventListener("blur", onBlur);
 
     onCleanup(() => {
       window.removeEventListener("keydown", onKeyDown, { capture: true });
       window.removeEventListener("keyup", onKeyUp, { capture: true });
+      window.removeEventListener("blur", onBlur);
     });
   });
 
@@ -92,6 +103,16 @@ export function KineticContainer(): JSXElement {
 
           {/* Center Text Board with Lookahead Lighting & Ghost Pacer */}
           <div class="relative flex w-full flex-wrap items-center justify-start gap-x-2 gap-y-3 rounded-2xl border border-sub-alt/40 bg-[#1e2023]/90 p-7 text-2xl font-semibold tracking-wide shadow-2xl backdrop-blur-md">
+            {/* AFK / Window Blur Pause Overlay */}
+            <Show when={isKineticPaused()}>
+              <div class="animate-in fade-in bg-black/50 absolute inset-0 z-30 flex items-center justify-center rounded-2xl backdrop-blur-xs transition-all duration-200">
+                <div class="border-amber-400/40 flex items-center gap-2.5 rounded-xl border bg-[#1e2023]/95 px-5 py-2.5 text-sm font-bold text-text shadow-2xl">
+                  <Fa icon="fa-pause" class="text-amber-400 text-xs" />
+                  <span>Paused — Press any key to resume</span>
+                </div>
+              </div>
+            </Show>
+
             {/* Optional Cadence Metronome Pulse Bar */}
             <Show when={kineticSettings().metronome}>
               <div class="absolute top-0 right-0 left-0 h-1 overflow-hidden rounded-t-2xl bg-main/20">

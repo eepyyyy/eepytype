@@ -90,7 +90,11 @@ export function analyzeWordKeystrokes(
   const firstTimestamp = firstStroke
     ? firstStroke.timestamp
     : wordDisplayedTimestamp;
-  const iklMs = Math.max(20, firstTimestamp - wordDisplayedTimestamp);
+  const rawIkl =
+    wordDisplayedTimestamp > 0
+      ? firstTimestamp - wordDisplayedTimestamp
+      : baselineIklMs;
+  const iklMs = Math.max(20, Math.min(1800, rawIkl));
   const isCognitiveHesitation = iklMs > baselineIklMs * 1.8;
 
   // 2. Inter-Key Intervals (IKI): keystroke-to-keystroke
