@@ -21,6 +21,10 @@ import {
 } from "../utils/keybr/key-calibration";
 
 export type KeybrViewMode = "normal" | "compact" | "bare";
+export type KeybrWidthMode = "full" | "wide" | "normal" | "compact";
+export type KeybrFontSize = "small" | "medium" | "large" | "xlarge";
+export type KeybrTextAlign = "left" | "center";
+export type KeybrSeparator = "dot" | "space";
 
 export type KeybrSettings = {
   targetWpm: number;
@@ -29,6 +33,11 @@ export type KeybrSettings = {
   withPunctuation: boolean;
   dailyGoalMinutes: number;
   viewMode: KeybrViewMode;
+  widthMode: KeybrWidthMode;
+  customWidthPercent: number;
+  fontSize: KeybrFontSize;
+  textAlign: KeybrTextAlign;
+  separator: KeybrSeparator;
 };
 
 const DEFAULT_SETTINGS: KeybrSettings = {
@@ -38,6 +47,11 @@ const DEFAULT_SETTINGS: KeybrSettings = {
   withPunctuation: false,
   dailyGoalMinutes: 30,
   viewMode: "normal",
+  widthMode: "full",
+  customWidthPercent: 100,
+  fontSize: "large",
+  textAlign: "left",
+  separator: "dot",
 };
 
 const STORAGE_KEY = "eepytype_keybr_state_v1";
@@ -551,6 +565,20 @@ export function updateKeybrSettings(partial: Partial<KeybrSettings>): void {
   const updated = { ...keybrSettings(), ...partial };
   setKeybrSettings(updated);
   saveKeybrState();
+}
+
+export function cycleKeybrWidthMode(): void {
+  const modes: KeybrWidthMode[] = ["full", "wide", "normal", "compact"];
+  const current = keybrSettings().widthMode ?? "full";
+  const next = modes[(modes.indexOf(current) + 1) % modes.length] ?? "full";
+  updateKeybrSettings({ widthMode: next });
+}
+
+export function cycleKeybrFontSize(): void {
+  const sizes: KeybrFontSize[] = ["small", "medium", "large", "xlarge"];
+  const current = keybrSettings().fontSize ?? "large";
+  const next = sizes[(sizes.indexOf(current) + 1) % sizes.length] ?? "large";
+  updateKeybrSettings({ fontSize: next });
 }
 
 // Set active state

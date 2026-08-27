@@ -1,6 +1,8 @@
 import { createSignal, For, JSXElement, Show } from "solid-js";
 
 import {
+  cycleKeybrFontSize,
+  cycleKeybrWidthMode,
   dailyGoal,
   focusedKey,
   keyCalibrationMap,
@@ -9,6 +11,7 @@ import {
   skipKeybrLesson,
   streaks,
   summaryMetrics,
+  updateKeybrSettings,
 } from "../../../../states/keybr";
 import { showModal } from "../../../../states/modals";
 import { cn } from "../../../../utils/cn";
@@ -64,23 +67,25 @@ export function KeybrIndicators(): JSXElement {
     return conf !== null && conf !== undefined ? Math.round(conf * 100) : 0;
   };
 
-  const currentBestConfPercent = () => {
-    const conf = currentKeyData()?.bestConfidence;
-    return conf !== null && conf !== undefined ? Math.round(conf * 100) : 0;
+  const cycleViewMode = () => {
+    const modes = ["normal", "compact", "bare"] as const;
+    const current = keybrSettings().viewMode;
+    const next = modes[(modes.indexOf(current) + 1) % modes.length] ?? "normal";
+    updateKeybrSettings({ viewMode: next });
   };
 
   return (
-    <div class="mx-auto flex w-full max-w-4xl flex-col gap-2.5 font-mono text-xs select-none">
-      {/* Row 1: Metrics + Top-Right Action Controls */}
-      <div class="flex items-center justify-between gap-4">
+    <div class="mx-auto flex w-full flex-col gap-3 font-mono text-xs select-none">
+      {/* Row 1: Metrics + Action Toolbar */}
+      <div class="flex flex-wrap items-center justify-between gap-3 border-b border-sub-alt/30 pb-2.5">
         <div class="flex items-center gap-3">
-          <span class="w-24 text-right font-semibold text-sub/70">
+          <span class="text-[11px] font-bold tracking-wider text-sub/80 uppercase">
             Metrics:
           </span>
-          <div class="flex flex-wrap items-center gap-5 text-sub">
+          <div class="flex flex-wrap items-center gap-4 text-sub sm:gap-6">
             {/* Speed */}
-            <div class="flex items-center gap-1">
-              <span class="text-sub/80">Speed:</span>
+            <div class="flex items-center gap-1.5">
+              <span class="text-sub/70">Speed:</span>
               <span class="font-bold text-text">
                 {summaryMetrics().speed.last}wpm
               </span>
@@ -101,8 +106,8 @@ export function KeybrIndicators(): JSXElement {
             </div>
 
             {/* Accuracy */}
-            <div class="flex items-center gap-1">
-              <span class="text-sub/80">Accuracy:</span>
+            <div class="flex items-center gap-1.5">
+              <span class="text-sub/70">Accuracy:</span>
               <span class="font-bold text-text">
                 {Math.round(summaryMetrics().accuracy.last * 100)}%
               </span>
@@ -123,8 +128,8 @@ export function KeybrIndicators(): JSXElement {
             </div>
 
             {/* Score */}
-            <div class="flex items-center gap-1">
-              <span class="text-sub/80">Score:</span>
+            <div class="flex items-center gap-1.5">
+              <span class="text-sub/70">Score:</span>
               <span class="font-bold text-text">
                 {summaryMetrics().score.last}
               </span>
@@ -143,16 +148,44 @@ export function KeybrIndicators(): JSXElement {
           </div>
         </div>
 
-        {/* Top Right Action Icons */}
-        <div class="flex items-center gap-2 text-sub/70">
+        {/* Top Right Action Toolbar */}
+        <div class="flex items-center gap-1 text-sub">
+          {/* Width Mode Toggle */}
           <button
             type="button"
-            title="Help / Tour"
-            onClick={() => showModal("KeybrSettingsModal")}
+            title={`Adjust Width (Current: ${keybrSettings().widthMode})`}
+            onClick={() => cycleKeybrWidthMode()}
+            class="flex items-center gap-1 rounded-md px-2 py-1 text-xs font-semibold transition-all hover:bg-sub-alt/40 hover:text-text"
+          >
+            <Fa icon="fa-arrows-alt-h" />
+            <span class="hidden text-[10px] uppercase sm:inline">
+              {keybrSettings().widthMode}
+            </span>
+          </button>
+
+          {/* Font Size Toggle */}
+          <button
+            type="button"
+            title={`Adjust Font Size (Current: ${keybrSettings().fontSize})`}
+            onClick={() => cycleKeybrFontSize()}
+            class="flex items-center gap-1 rounded-md px-2 py-1 text-xs font-semibold transition-all hover:bg-sub-alt/40 hover:text-text"
+          >
+            <Fa icon="fa-font" />
+            <span class="hidden text-[10px] uppercase sm:inline">
+              {keybrSettings().fontSize}
+            </span>
+          </button>
+
+          {/* View Mode Toggle (Normal/Compact/Bare) */}
+          <button
+            type="button"
+            title={`View Mode (Current: ${keybrSettings().viewMode})`}
+            onClick={cycleViewMode}
             class="flex h-7 w-7 items-center justify-center rounded-md transition-colors hover:bg-sub-alt/40 hover:text-text"
           >
-            <Fa icon="fa-question-circle" />
+            <Fa icon="fa-keyboard" />
           </button>
+
           <button
             type="button"
             title="Restart Lesson (Esc)"
@@ -161,6 +194,7 @@ export function KeybrIndicators(): JSXElement {
           >
             <Fa icon="fa-undo" />
           </button>
+
           <button
             type="button"
             title="Skip Lesson (Ctrl+Right)"
@@ -169,6 +203,7 @@ export function KeybrIndicators(): JSXElement {
           >
             <Fa icon="fa-redo" />
           </button>
+
           <button
             type="button"
             title="Toggle Fullscreen"
@@ -177,9 +212,10 @@ export function KeybrIndicators(): JSXElement {
           >
             <Fa icon="fa-expand" />
           </button>
+
           <button
             type="button"
-            title="Settings"
+            title="Settings & Layout Options"
             onClick={() => showModal("KeybrSettingsModal")}
             class="flex h-7 w-7 items-center justify-center rounded-md transition-colors hover:bg-sub-alt/40 hover:text-text"
           >
@@ -188,9 +224,11 @@ export function KeybrIndicators(): JSXElement {
         </div>
       </div>
 
-      {/* Row 2: All keys */}
-      <div class="flex items-center gap-3">
-        <span class="w-24 text-right font-semibold text-sub/70">All keys:</span>
+      {/* Row 2: All keys confidence visualizer */}
+      <div class="flex flex-wrap items-center gap-2">
+        <span class="w-24 text-left text-[11px] font-bold tracking-wider text-sub/70 uppercase sm:text-right">
+          All keys:
+        </span>
         <div class="flex flex-wrap items-center gap-1">
           <For each={KEYBR_ENGLISH_ORDER}>
             {(char) => {
@@ -210,9 +248,9 @@ export function KeybrIndicators(): JSXElement {
                   }}
                   onMouseLeave={handleMouseLeave}
                   class={cn(
-                    "relative flex h-5 w-5 items-center justify-center rounded-xs text-[11px] font-bold transition-all duration-100 select-none",
+                    "relative flex h-5 w-5 cursor-pointer items-center justify-center rounded-xs text-[11px] font-bold transition-all duration-100 select-none",
                     isIncluded()
-                      ? "text-bg shadow-xs"
+                      ? "text-bg shadow-xs hover:scale-110"
                       : "bg-sub-alt/25 text-sub/40 after:absolute after:inset-0 after:rotate-45 after:border-t after:border-sub/40",
                     isFocused() &&
                       "z-10 ring-2 ring-main ring-offset-1 ring-offset-bg",
@@ -231,15 +269,15 @@ export function KeybrIndicators(): JSXElement {
         </div>
       </div>
 
-      {/* Row 3: Current key */}
-      <div class="flex items-center gap-3">
-        <span class="w-24 text-right font-semibold text-sub/70">
-          Current key:
-        </span>
-        <div class="flex items-center gap-3 text-sub">
-          {/* Key badge */}
+      {/* Row 3: Current key info + Accuracy + Daily goal */}
+      <div class="grid grid-cols-1 gap-2 pt-1 sm:grid-cols-3 sm:gap-4">
+        {/* Current Focus Key */}
+        <div class="flex items-center gap-2.5">
+          <span class="text-[11px] font-bold tracking-wider text-sub/70 uppercase">
+            Current key:
+          </span>
           <div
-            class="flex h-6 w-6 items-center justify-center rounded-xs text-xs font-black text-bg shadow-sm"
+            class="flex h-5 w-5 items-center justify-center rounded-xs text-[11px] font-black text-bg shadow-sm"
             style={{
               "background-color": getConfidenceColor(
                 currentKeyData()?.confidence ?? null,
@@ -248,74 +286,51 @@ export function KeybrIndicators(): JSXElement {
           >
             <span class="uppercase">{focusedKey()}</span>
           </div>
-
-          <div class="flex flex-wrap items-center gap-4 text-xs">
-            <div>
-              <span class="text-sub/80">Last speed: </span>
-              <span class="font-bold text-text">
-                {currentKeyData()?.speed !== null &&
-                currentKeyData()?.speed !== undefined
-                  ? `${currentKeyData()?.speed}wpm`
-                  : "0wpm"}{" "}
-                <span class="font-normal text-sub/70">
-                  ({currentConfPercent()}%)
-                </span>
-              </span>
-            </div>
-
-            <div>
-              <span class="text-sub/80">Top speed: </span>
-              <span class="font-bold text-text">
-                {currentKeyData()?.bestSpeed !== null &&
-                currentKeyData()?.bestSpeed !== undefined
-                  ? `${currentKeyData()?.bestSpeed}wpm`
-                  : "0wpm"}{" "}
-                <span class="font-normal text-sub/70">
-                  ({currentBestConfPercent()}%)
-                </span>
-              </span>
-            </div>
-
-            <div class="flex items-center gap-1">
-              <span class="text-sub/80">Learning rate: </span>
-              <span class="text-emerald-400 font-bold">
-                {currentLr().learningRate !== null
-                  ? `+${currentLr().learningRate}wpm/lesson`
-                  : "+0.3wpm/lesson"}
-              </span>
-              <span class="text-emerald-400">☺</span>
-            </div>
-          </div>
-        </div>
-      </div>
-
-      {/* Row 4: Accuracy Streak */}
-      <div class="flex items-center gap-3">
-        <span class="w-24 text-right font-semibold text-sub/70">Accuracy:</span>
-        <span class="text-xs font-medium text-sub/90">
-          {(() => {
-            const firstStreak = streaks()[0];
-            return firstStreak !== undefined && firstStreak.count > 0
-              ? `${firstStreak.count} consecutive lessons with 95% accuracy.`
-              : "One lesson with 95% accuracy.";
-          })()}
-        </span>
-      </div>
-
-      {/* Row 5: Daily Goal */}
-      <div class="flex items-center gap-3">
-        <span class="w-24 text-right font-semibold text-sub/70">
-          Daily goal:
-        </span>
-        <div class="flex items-center gap-3 text-sub">
-          <span class="text-xs text-sub/90">
-            {dailyGoal().completedPercent}%/{keybrSettings().dailyGoalMinutes}{" "}
-            minutes
+          <span class="font-bold text-text">
+            {currentKeyData()?.speed !== null &&
+            currentKeyData()?.speed !== undefined
+              ? `${currentKeyData()?.speed}wpm`
+              : "0wpm"}{" "}
+            <span class="font-normal text-sub/70">
+              ({currentConfPercent()}%)
+            </span>
           </span>
-          <div class="h-2 w-64 overflow-hidden rounded-full bg-sub-alt/40">
+          <span class="text-emerald-400 text-[11px] font-bold">
+            {currentLr().learningRate !== null
+              ? `+${currentLr().learningRate}wpm`
+              : "+0.3wpm"}
+          </span>
+        </div>
+
+        {/* Accuracy Streak */}
+        <div class="flex items-center gap-2">
+          <span class="text-[11px] font-bold tracking-wider text-sub/70 uppercase">
+            Accuracy:
+          </span>
+          <span class="font-medium text-text/90">
+            {(() => {
+              const firstStreak = streaks()[0];
+              return firstStreak !== undefined && firstStreak.count > 0
+                ? `${firstStreak.count} consecutive with 95% acc.`
+                : "Target 95% accuracy";
+            })()}
+          </span>
+        </div>
+
+        {/* Daily Goal */}
+        <div class="flex items-center gap-2">
+          <span class="text-[11px] font-bold tracking-wider text-sub/70 uppercase">
+            Daily goal:
+          </span>
+          <span class="font-medium text-text/90">
+            {dailyGoal().completedPercent}%/{keybrSettings().dailyGoalMinutes}m
+          </span>
+          <div class="h-2 max-w-[120px] flex-1 overflow-hidden rounded-full bg-sub-alt/40">
             <div
-              class="h-full rounded-full bg-sub/80 transition-all duration-300"
-              style={{ width: `${dailyGoal().completedPercent}%` }}
+              class="h-full rounded-full bg-main transition-all duration-300"
+              style={{
+                width: `${Math.min(100, dailyGoal().completedPercent)}%`,
+              }}
             ></div>
           </div>
         </div>

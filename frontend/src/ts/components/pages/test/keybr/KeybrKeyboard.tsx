@@ -267,7 +267,7 @@ const KEY_ROWS: KeyDef[][] = [
 
 export function KeybrKeyboard(): JSXElement {
   return (
-    <div class="relative mx-auto flex w-full max-w-2xl flex-col items-center gap-1 rounded-2xl border border-[#3b3d42] bg-[#1e2023]/95 p-3 font-mono shadow-2xl backdrop-blur-md select-none">
+    <div class="relative mx-auto flex w-full max-w-4xl flex-col items-center gap-1.5 rounded-2xl border border-sub-alt/40 bg-[#1e2023]/95 p-4 font-mono shadow-2xl backdrop-blur-md select-none">
       {/* Dynamic Key Motion Flow SVG Overlay */}
       <svg
         class="pointer-events-none absolute inset-0 h-full w-full opacity-40"
