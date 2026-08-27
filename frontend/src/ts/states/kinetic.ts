@@ -183,6 +183,7 @@ let ghostPacerTimer: ReturnType<typeof setInterval> | null = null;
 let idleTimer: ReturnType<typeof setTimeout> | null = null;
 let pausedAtTimestamp = 0;
 const IDLE_TIMEOUT_MS = 2500;
+const recentWordsHistory: string[] = [];
 
 // Load persisted kinetic state
 export function loadKineticState(): void {
@@ -484,20 +485,29 @@ export async function startKineticDrill(): Promise<void> {
       [],
       tier,
       remediationCount,
+      recentWordsHistory,
     );
     selectedWords = [...remediationWords];
   }
 
-  // Fill remaining words with balanced vocabulary from corpus
+  // Fill remaining words with balanced non-recent vocabulary from corpus
   const remaining = targetWordCount - selectedWords.length;
   if (remaining > 0) {
     const allWords = index.words;
+    const recentSet = new Set(recentWordsHistory);
+    // Shuffle all words candidates
+    const nonRecentPool = allWords.filter(
+      (w) => w.length >= 2 && !recentSet.has(w) && !selectedWords.includes(w),
+    );
+    const poolToUse =
+      nonRecentPool.length >= remaining ? nonRecentPool : allWords;
+
     for (
       let i = 0;
-      i < remaining * 3 && selectedWords.length < targetWordCount;
+      i < remaining * 4 && selectedWords.length < targetWordCount;
       i++
     ) {
-      const randWord = allWords[Math.floor(Math.random() * allWords.length)];
+      const randWord = poolToUse[Math.floor(Math.random() * poolToUse.length)];
       if (
         randWord !== undefined &&
         randWord.length >= 2 &&
@@ -508,8 +518,22 @@ export async function startKineticDrill(): Promise<void> {
     }
   }
 
-  // Shuffle slightly so remediation words are distributed naturally
-  selectedWords.sort(() => Math.random() - 0.5);
+  // Update recent words history FIFO (keep max 100)
+  recentWordsHistory.push(...selectedWords);
+  if (recentWordsHistory.length > 100) {
+    recentWordsHistory.splice(0, recentWordsHistory.length - 100);
+  }
+
+  // Shuffle selected words so remediation words are distributed naturally
+  for (let i = selectedWords.length - 1; i > 0; i--) {
+    const j = Math.floor(Math.random() * (i + 1));
+    const wordI = selectedWords[i];
+    const wordJ = selectedWords[j];
+    if (wordI !== undefined && wordJ !== undefined) {
+      selectedWords[i] = wordJ;
+      selectedWords[j] = wordI;
+    }
+  }
 
   const drillItems: KineticDrillItem[] = selectedWords.map((w) => ({
     word: w,

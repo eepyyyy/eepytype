@@ -151,8 +151,10 @@ export function queryInvertedIndex(
   secondaryStressTransitions: readonly string[] = [],
   tier: SpeedTier = "intermediate",
   limit = 20,
+  excludeWords: readonly string[] = [],
 ): string[] {
   const matchedWordIndices = new Set<number>();
+  const excludeSet = new Set(excludeWords);
 
   // Gather matching word indices from inverted index
   for (const trans of targetTransitions) {
@@ -181,7 +183,8 @@ export function queryInvertedIndex(
       word === undefined ||
       word === "" ||
       word.length < minLen ||
-      word.length > maxLen
+      word.length > maxLen ||
+      excludeSet.has(word)
     ) {
       continue;
     }
@@ -200,6 +203,27 @@ export function queryInvertedIndex(
     }
   }
 
+  if (scoredCandidates.length === 0) {
+    return [];
+  }
+
+  // Sort by score descending to get best matches
   scoredCandidates.sort((a, b) => b.score - a.score);
-  return scoredCandidates.slice(0, limit).map((c) => c.word);
+
+  // Take a broad top candidate pool (e.g. top 100 or all) and randomly shuffle/sample
+  const poolSize = Math.min(scoredCandidates.length, Math.max(limit * 4, 60));
+  const candidatePool = scoredCandidates.slice(0, poolSize).map((c) => c.word);
+
+  // Fisher-Yates shuffle candidate pool
+  for (let i = candidatePool.length - 1; i > 0; i--) {
+    const j = Math.floor(Math.random() * (i + 1));
+    const itemI = candidatePool[i];
+    const itemJ = candidatePool[j];
+    if (itemI !== undefined && itemJ !== undefined) {
+      candidatePool[i] = itemJ;
+      candidatePool[j] = itemI;
+    }
+  }
+
+  return candidatePool.slice(0, limit);
 }
