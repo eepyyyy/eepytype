@@ -1,10 +1,10 @@
 import { createSignal } from "solid-js";
 
+import { Language } from "@monkeytype/schemas/languages";
 import { setConfig } from "../config/setters";
 import * as SoundController from "../controllers/sound-controller";
 import { restartTestEvent } from "../events/test";
 import * as CustomText from "../test/custom-text";
-import { Language } from "@monkeytype/schemas/languages";
 import { getLanguage } from "../utils/json-data";
 import {
   analyzeWordKeystrokes,
@@ -24,14 +24,9 @@ import {
   queryInvertedIndex,
   SpeedTier,
 } from "../utils/kinetic/inverted-index";
-import {
-  ANTI_TILT_QUEUE_WEIGHTS,
-  generateMultiQueueDrill,
-  KineticDrillItem,
-  MultiQueueWeights,
-} from "../utils/kinetic/multi-queue";
+import { KineticDrillItem } from "../utils/kinetic/multi-queue";
 import { setCustomTextIndicator } from "./core";
-import { hideModal } from "./modals";
+import { hideModal, showModal } from "./modals";
 
 export type KineticCorpus =
   | "english_10k"
@@ -46,38 +41,30 @@ export type KineticTraceMode = "all" | "errors" | "focus" | "off";
 export type KineticSettings = {
   corpus: KineticCorpus;
   speedTier: SpeedTier | "auto";
-  flowRatio: number;
-  stressRatio: number;
-  decayRatio: number;
-  antiTiltEnabled: boolean;
   targetWpm: number;
   wordCount: number;
   showDiagnostics: boolean;
   lookaheadLighting: boolean;
   ghostPacer: boolean;
   metronome: boolean;
-  wordResetConditioning: boolean;
   traceMode: KineticTraceMode;
+  sessionLength: number; // 5, 10, or 0 (infinite)
 };
 
 const DEFAULT_SETTINGS: KineticSettings = {
   corpus: "english_10k",
   speedTier: "auto",
-  flowRatio: 0.6,
-  stressRatio: 0.3,
-  decayRatio: 0.1,
-  antiTiltEnabled: true,
   targetWpm: 60,
-  wordCount: 25,
+  wordCount: 20,
   showDiagnostics: true,
   lookaheadLighting: true,
   ghostPacer: true,
   metronome: false,
-  wordResetConditioning: false,
   traceMode: "all",
+  sessionLength: 5,
 };
 
-const STORAGE_KEY = "eepytype_kinetic_state_v2";
+const STORAGE_KEY = "eepytype_kinetic_state_v3";
 const CUSTOM_CORPUS_KEY = "eepytype_kinetic_custom_corpus_v1";
 
 // In-memory cache of corpus indexes
@@ -87,6 +74,27 @@ export type KineticTransitionTrace = {
   from: string;
   to: string;
   correct: boolean;
+  timestamp: number;
+};
+
+export type CharStatus = "pending" | "correct" | "error" | "corrected_error";
+
+export type MistakeLogEntry = {
+  expected: string;
+  typed: string;
+  word: string;
+  timestamp: number;
+};
+
+export type SessionTestResult = {
+  testNumber: number;
+  wpm: number;
+  accuracy: number;
+  totalHits: number;
+  totalMisses: number;
+  meanIklMs: number;
+  meanIkiMs: number;
+  mistakes: Record<string, number>;
   timestamp: number;
 };
 
@@ -104,14 +112,12 @@ export const [activeKineticDrill, setActiveKineticDrill] = createSignal<
 export const [activeDrillText, setActiveDrillText] = createSignal<string>("");
 export const [drillCursorIndex, setDrillCursorIndex] = createSignal<number>(0);
 export const [drillWordIndex, setDrillWordIndex] = createSignal<number>(0);
+export const [drillCharStatuses, setDrillCharStatuses] = createSignal<
+  CharStatus[]
+>([]);
 export const [currentWordHasError, setCurrentWordHasError] =
   createSignal<boolean>(false);
-export const [isAntiTiltEngaged, setIsAntiTiltEngaged] =
-  createSignal<boolean>(false);
 export const [streakCount, setStreakCount] = createSignal<number>(0);
-export const [isWarmupActive, setIsWarmupActive] = createSignal<boolean>(false);
-export const [activeMicroDrillTransition, setActiveMicroDrillTransition] =
-  createSignal<string | null>(null);
 export const [customCorpusText, setCustomCorpusText] = createSignal<string>("");
 export const [kineticDepressedKeys, setKineticDepressedKeys] = createSignal<
   string[]
@@ -122,6 +128,23 @@ export const [ghostPacerProgress, setGhostPacerProgress] =
   createSignal<number>(0);
 export const [isKineticPaused, setIsKineticPaused] =
   createSignal<boolean>(false);
+export const [activeMicroDrillTransition, setActiveMicroDrillTransition] =
+  createSignal<string | null>(null);
+
+// Session Set Progress Signals (e.g. 5-test or 10-test session)
+export const [sessionCurrentTestIndex, setSessionCurrentTestIndex] =
+  createSignal<number>(1);
+export const [sessionHistory, setSessionHistory] = createSignal<
+  SessionTestResult[]
+>([]);
+export const [isSessionComplete, setIsSessionComplete] =
+  createSignal<boolean>(false);
+export const [repeatedMistakes, setRepeatedMistakes] = createSignal<
+  Record<string, number>
+>({});
+export const [recentMistakesList, setRecentMistakesList] = createSignal<
+  MistakeLogEntry[]
+>([]);
 
 export type LiveKineticDiagnostics = {
   lastIklMs: number;
@@ -182,6 +205,11 @@ export function loadKineticState(): void {
           ratingsVal as Record<string, GlickoTransitionRating>,
         );
       }
+
+      const mistakesVal = parsed["repeatedMistakes"];
+      if (mistakesVal !== null && typeof mistakesVal === "object") {
+        setRepeatedMistakes(mistakesVal as Record<string, number>);
+      }
     }
 
     const savedCorpus = localStorage.getItem(CUSTOM_CORPUS_KEY);
@@ -199,6 +227,7 @@ export function saveKineticState(): void {
     const state = {
       settings: kineticSettings(),
       ratings: transitionRatings(),
+      repeatedMistakes: repeatedMistakes(),
     };
     localStorage.setItem(STORAGE_KEY, JSON.stringify(state));
     if (customCorpusText() !== "") {
@@ -253,7 +282,6 @@ export function resolveSpeedTier(
   return "elite";
 }
 
-// Projection Forecast Engine
 export type ProjectedMilestone = {
   currentTier: SpeedTier;
   nextTier: SpeedTier;
@@ -267,35 +295,36 @@ export function calculateProjectedMilestones(
   currentWpm: number,
   ratings: Record<string, GlickoTransitionRating>,
 ): ProjectedMilestone {
-  const wpm = Math.max(30, currentWpm);
+  const wpm = Math.max(20, currentWpm);
   let currentTier: SpeedTier = "beginner";
   let nextTier: SpeedTier = "intermediate";
   let targetWpm = 70;
 
-  if (wpm >= 160) {
-    currentTier = "elite";
-    nextTier = "elite";
-    targetWpm = 200;
-  } else if (wpm >= 120) {
-    currentTier = "advanced";
-    nextTier = "elite";
-    targetWpm = 160;
-  } else if (wpm >= 70) {
+  if (wpm < 70) {
+    currentTier = "beginner";
+    nextTier = "intermediate";
+    targetWpm = 70;
+  } else if (wpm < 120) {
     currentTier = "intermediate";
     nextTier = "advanced";
     targetWpm = 120;
+  } else if (wpm < 160) {
+    currentTier = "advanced";
+    nextTier = "elite";
+    targetWpm = 160;
+  } else {
+    currentTier = "elite";
+    nextTier = "elite";
+    targetWpm = Math.ceil((wpm + 15) / 10) * 10;
   }
 
   const diffWpm = Math.max(5, targetWpm - wpm);
-
-  // Measure volatility and rating momentum across practiced transitions
-  const practiced = Object.values(ratings).filter((r) => r.sampleCount >= 2);
+  const practiced = Object.values(ratings).filter((r) => r.sampleCount > 0);
   const avgSigma =
     practiced.length > 0
       ? practiced.reduce((acc, r) => acc + r.sigma, 0) / practiced.length
       : 0.06;
 
-  // Empirical learning rate: ~4.5 WPM gain per hour of focused chunk practice
   const wpmPerHour = Math.max(2.0, 5.0 - avgSigma * 15);
   const estimatedPracticeHours = Number((diffWpm / wpmPerHour).toFixed(1));
   const estimatedDays = Math.max(
@@ -313,7 +342,40 @@ export function calculateProjectedMilestones(
   };
 }
 
-// Start / Resume Ghost Pacer animation
+// Record a mistake event
+export function recordMistake(
+  expected: string,
+  typed: string,
+  word: string,
+): void {
+  const charKey = expected.toLowerCase();
+  setRepeatedMistakes((prev) => ({
+    ...prev,
+    [charKey]: (prev[charKey] ?? 0) + 1,
+  }));
+
+  setRecentMistakesList((prev) => [
+    ...prev.slice(-20),
+    {
+      expected,
+      typed,
+      word,
+      timestamp: Date.now(),
+    },
+  ]);
+}
+
+// Top letters with most mistakes for automated remediation
+export function getMistakeRemediationLetters(): string[] {
+  const mistakes = repeatedMistakes();
+  return Object.entries(mistakes)
+    .filter(([k, count]) => k.length === 1 && count > 0 && k !== " ")
+    .sort((a, b) => b[1] - a[1])
+    .slice(0, 5)
+    .map(([char]) => char);
+}
+
+// Ghost Pacer animation
 export function pauseGhostPacer(): void {
   if (ghostPacerTimer !== null) {
     clearInterval(ghostPacerTimer);
@@ -398,54 +460,77 @@ function resetIdleTimer(): void {
   }, IDLE_TIMEOUT_MS);
 }
 
-// Start a new Predictive Kinetic Drill
+// Start a new test (Automatically injects words containing user's mistakes)
 export async function startKineticDrill(): Promise<void> {
   const settings = kineticSettings();
   const index = await getOrLoadCorpusIndex(settings.corpus);
-  const ratings = transitionRatings();
   const diag = kineticDiagnostics();
-
   const tier = resolveSpeedTier(settings, diag.meanIkiMs);
 
-  // Check Anti-Tilt rebalancing
-  const isAntiTilt = settings.antiTiltEnabled && diag.rollingAccuracy < 0.88;
-  setIsAntiTiltEngaged(isAntiTilt);
-  setIsWarmupActive(false);
-  setActiveMicroDrillTransition(null);
+  const mistakeLetters = getMistakeRemediationLetters();
+  const targetWordCount = settings.wordCount;
 
-  const weights: MultiQueueWeights = isAntiTilt
-    ? ANTI_TILT_QUEUE_WEIGHTS
-    : {
-        flowRatio: settings.flowRatio,
-        stressRatio: settings.stressRatio,
-        decayRatio: settings.decayRatio,
-      };
+  let selectedWords: string[] = [];
 
-  const drillItems = generateMultiQueueDrill(
-    index,
-    ratings,
-    weights,
-    settings.wordCount,
-    tier,
-  );
+  if (mistakeLetters.length > 0) {
+    // Automatically query words heavily containing user's mistakes (~65% of test words)
+    const remediationCount = Math.min(
+      targetWordCount,
+      Math.max(6, Math.round(targetWordCount * 0.65)),
+    );
+    const remediationWords = queryInvertedIndex(
+      index,
+      mistakeLetters,
+      [],
+      tier,
+      remediationCount,
+    );
+    selectedWords = [...remediationWords];
+  }
+
+  // Fill remaining words with balanced vocabulary from corpus
+  const remaining = targetWordCount - selectedWords.length;
+  if (remaining > 0) {
+    const allWords = index.words;
+    for (
+      let i = 0;
+      i < remaining * 3 && selectedWords.length < targetWordCount;
+      i++
+    ) {
+      const randWord = allWords[Math.floor(Math.random() * allWords.length)];
+      if (
+        randWord !== undefined &&
+        randWord.length >= 2 &&
+        !selectedWords.includes(randWord)
+      ) {
+        selectedWords.push(randWord);
+      }
+    }
+  }
+
+  // Shuffle slightly so remediation words are distributed naturally
+  selectedWords.sort(() => Math.random() - 0.5);
+
+  const drillItems: KineticDrillItem[] = selectedWords.map((w) => ({
+    word: w,
+    queueType: mistakeLetters.some((l) => w.includes(l)) ? "stress" : "flow",
+  }));
 
   initDrillWithWords(
     drillItems,
-    `Kinetic Chunking [${settings.corpus.toUpperCase()} | ${tier.toUpperCase()}]`,
+    `Adaptive Training [${settings.corpus.toUpperCase()}]`,
   );
 }
 
-// Launch a 1-click targeted micro-drill on a specific transition (e.g. from Skill Map)
-export async function launchMicroDrill(
-  targetTransition: string,
-): Promise<void> {
+// Launch 1-click micro-drill on specific character / transition
+export async function launchMicroDrill(targetLetter: string): Promise<void> {
   const settings = kineticSettings();
   const index = await getOrLoadCorpusIndex(settings.corpus);
   const tier = resolveSpeedTier(settings, kineticDiagnostics().meanIkiMs);
 
   const matchedWords = queryInvertedIndex(
     index,
-    [targetTransition.toLowerCase()],
+    [targetLetter.toLowerCase()],
     [],
     tier,
     15,
@@ -454,40 +539,14 @@ export async function launchMicroDrill(
   const drillItems: KineticDrillItem[] = matchedWords.map((w) => ({
     word: w,
     queueType: "stress",
-    primaryTransition: targetTransition,
+    primaryTransition: targetLetter,
   }));
 
-  setActiveMicroDrillTransition(targetTransition.toUpperCase());
+  setActiveMicroDrillTransition(targetLetter.toUpperCase());
   initDrillWithWords(
     drillItems,
-    `Micro-Drill: [${targetTransition.toUpperCase()}]`,
+    `Micro-Drill: [${targetLetter.toUpperCase()}]`,
   );
-}
-
-// Diagnostic Warm-up routine targeting offline decayed transitions (high phi)
-export async function startDiagnosticWarmup(): Promise<void> {
-  const settings = kineticSettings();
-  const index = await getOrLoadCorpusIndex(settings.corpus);
-  const ratings = transitionRatings();
-  const tier = resolveSpeedTier(settings, kineticDiagnostics().meanIkiMs);
-
-  const decayed = Object.values(ratings)
-    .sort((a, b) => b.phi - a.phi)
-    .slice(0, 5)
-    .map((r) => r.transition);
-
-  const warmPool =
-    decayed.length > 0 ? decayed : ["th", "er", "in", "an", "re"];
-
-  const matchedWords = queryInvertedIndex(index, warmPool, [], tier, 15);
-  const drillItems: KineticDrillItem[] = matchedWords.map((w) => ({
-    word: w,
-    queueType: "decay",
-    primaryTransition: warmPool[0],
-  }));
-
-  setIsWarmupActive(true);
-  initDrillWithWords(drillItems, `Diagnostic Warm-Up (Decay Retention)`);
 }
 
 function initDrillWithWords(
@@ -501,6 +560,7 @@ function initDrillWithWords(
   setActiveDrillText(joinedText);
   setDrillCursorIndex(0);
   setDrillWordIndex(0);
+  setDrillCharStatuses(new Array(joinedText.length).fill("pending"));
   setCurrentWordHasError(false);
   setStreakCount(0);
   setKineticDepressedKeys([]);
@@ -545,7 +605,7 @@ function initDrillWithWords(
   hideModal("KineticSettingsModal");
 }
 
-// Handle real-time input for Kinetic Drill
+// Handle real-time input: Strict Typewriter Error-Lock
 export function handleKineticInput(event: KeyboardEvent): void {
   if (!isKineticActive()) return;
 
@@ -555,7 +615,7 @@ export function handleKineticInput(event: KeyboardEvent): void {
     return;
   }
 
-  // Prevent backspace/tab navigation
+  // Prevent backspace/tab
   if (event.key === "Backspace" || event.key === "Tab") {
     event.preventDefault();
     return;
@@ -604,16 +664,25 @@ export function handleKineticInput(event: KeyboardEvent): void {
   }
   lastTypedChar = inputChar.toLowerCase();
 
+  const statuses = [...drillCharStatuses()];
+
   if (isMatch) {
     drillTotalHits++;
     setStreakCount((prev) => prev + 1);
     void SoundController.playClick();
 
-    // Log keystroke
+    // If character was previously failed, leave it marked as "corrected_error" (red)
+    if (statuses[cur] === "error" || statuses[cur] === "corrected_error") {
+      statuses[cur] = "corrected_error";
+    } else {
+      statuses[cur] = "correct";
+    }
+    setDrillCharStatuses(statuses);
+
     currentWordLog.keystrokes.push({
       char: inputChar,
       timestamp: now,
-      correct: !currentWordHasError(),
+      correct: statuses[cur] === "correct",
     });
 
     const next = cur + 1;
@@ -629,7 +698,7 @@ export function handleKineticInput(event: KeyboardEvent): void {
 
       const allItems = activeKineticDrill();
       const nextWordItem = allItems[nextWIdx];
-      if (nextWordItem) {
+      if (nextWordItem !== undefined) {
         currentWordLog = {
           word: nextWordItem.word,
           wordDisplayedTimestamp: performance.now(),
@@ -639,40 +708,24 @@ export function handleKineticInput(event: KeyboardEvent): void {
     }
 
     if (next >= text.length) {
-      // Completed drill
-      finishKineticDrill();
+      finishKineticTest();
     }
   } else {
+    // Mistake made: Turn key red, lock cursor, wait for correct key
     drillTotalMisses++;
+    statuses[cur] = "error";
+    setDrillCharStatuses(statuses);
     setCurrentWordHasError(true);
     setStreakCount(0);
     void SoundController.playError();
+
+    recordMistake(expected, inputChar, currentWordLog.word);
 
     currentWordLog.keystrokes.push({
       char: inputChar,
       timestamp: now,
       correct: false,
     });
-
-    // Smart Word-Reset conditioning: if enabled, reset cursor to word start on typo
-    if (kineticSettings().wordResetConditioning) {
-      const allWords = activeKineticDrill().map((d) => d.word);
-      const wIdx = drillWordIndex();
-      let wordStartOffset = 0;
-      for (let i = 0; i < wIdx; i++) {
-        const w = allWords[i];
-        if (w !== undefined) wordStartOffset += w.length + 1;
-      }
-      setDrillCursorIndex(wordStartOffset);
-      const currItem = activeKineticDrill()[wIdx];
-      if (currItem) {
-        currentWordLog = {
-          word: currItem.word,
-          wordDisplayedTimestamp: performance.now(),
-          keystrokes: [],
-        };
-      }
-    }
   }
 }
 
@@ -687,7 +740,7 @@ function processCompletedWord(): void {
   const currentRatings = { ...transitionRatings() };
   const expectedLookup = (trans: string): number => {
     const r = currentRatings[trans];
-    return r ? Math.round(r.meanIkiMs) : 250;
+    return r !== undefined ? Math.round(r.meanIkiMs) : 250;
   };
 
   const analysis = analyzeWordKeystrokes(
@@ -696,7 +749,6 @@ function processCompletedWord(): void {
     kineticDiagnostics().meanIklMs,
   );
 
-  // Update Glicko-2 ratings for all transitions typed in the word
   for (const t of analysis.transitions) {
     const key = t.transition;
     const existing = currentRatings[key] ?? createDefaultTransition(key);
@@ -705,7 +757,6 @@ function processCompletedWord(): void {
   }
   setTransitionRatings(currentRatings);
 
-  // Update live diagnostics
   const prevDiag = kineticDiagnostics();
   const total = drillTotalHits + drillTotalMisses;
   const accuracy = total > 0 ? drillTotalHits / total : 1.0;
@@ -741,8 +792,59 @@ function processCompletedWord(): void {
   });
 }
 
-function finishKineticDrill(): void {
+// Finished a single test
+function finishKineticTest(): void {
+  pauseGhostPacer();
+  if (idleTimer !== null) {
+    clearTimeout(idleTimer);
+    idleTimer = null;
+  }
+
+  const durationSec = Math.max(1, (performance.now() - drillStartTime) / 1000);
+  const totalChars = activeDrillText().length;
+  const grossWpm = Math.round((totalChars / 5 / durationSec) * 60);
+  const totalStrokes = drillTotalHits + drillTotalMisses;
+  const acc =
+    totalStrokes > 0 ? Math.round((drillTotalHits / totalStrokes) * 100) : 100;
+
+  const testResult: SessionTestResult = {
+    testNumber: sessionCurrentTestIndex(),
+    wpm: grossWpm,
+    accuracy: acc,
+    totalHits: drillTotalHits,
+    totalMisses: drillTotalMisses,
+    meanIklMs: kineticDiagnostics().meanIklMs,
+    meanIkiMs: kineticDiagnostics().meanIkiMs,
+    mistakes: { ...repeatedMistakes() },
+    timestamp: Date.now(),
+  };
+
+  setSessionHistory((prev) => [...prev, testResult]);
   saveKineticState();
+
+  const target = kineticSettings().sessionLength;
+  const currentIndex = sessionCurrentTestIndex();
+
+  if (target > 0 && currentIndex >= target) {
+    // Session set complete (e.g. 5-test or 10-test complete)
+    setIsSessionComplete(true);
+    showModal("KineticSessionReportModal");
+  } else {
+    // Move to next test in set
+    setSessionCurrentTestIndex((prev) => prev + 1);
+    void startKineticDrill();
+  }
+}
+
+// Start a brand new session set (reset counter & history)
+export function startNewSession(sessionLength?: number): void {
+  if (sessionLength !== undefined) {
+    updateKineticSettings({ sessionLength });
+  }
+  setSessionCurrentTestIndex(1);
+  setSessionHistory([]);
+  setIsSessionComplete(false);
+  hideModal("KineticSessionReportModal");
   void startKineticDrill();
 }
 
@@ -755,7 +857,7 @@ export function setKineticMode(active: boolean): void {
   setIsKineticActive(active);
   if (active) {
     loadKineticState();
-    void startKineticDrill();
+    startNewSession();
   } else {
     pauseGhostPacer();
     if (idleTimer !== null) {

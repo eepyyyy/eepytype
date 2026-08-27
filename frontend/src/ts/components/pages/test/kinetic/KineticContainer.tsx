@@ -9,7 +9,7 @@ import {
 
 import {
   activeKineticDrill,
-  currentWordHasError,
+  drillCharStatuses,
   drillCursorIndex,
   drillWordIndex,
   ghostPacerProgress,
@@ -129,9 +129,9 @@ export function KineticContainer(): JSXElement {
             {(() => {
               const cur = drillCursorIndex();
               const curWIdx = drillWordIndex();
-              const hasErr = currentWordHasError();
               const pacerPos = ghostPacerProgress();
               const lookahead = kineticSettings().lookaheadLighting;
+              const statuses = () => drillCharStatuses();
 
               let charCounter = 0;
 
@@ -160,28 +160,36 @@ export function KineticContainer(): JSXElement {
                       >
                         <For each={wordChars}>
                           {(ch, cIdx) => {
-                            const isPastChar = () =>
-                              startCharIdx + cIdx() < cur;
-                            const isCurrentChar = () =>
-                              startCharIdx + cIdx() === cur;
+                            const absIdx = () => startCharIdx + cIdx();
+                            const isCurrentChar = () => absIdx() === cur;
+                            const charStatus = () =>
+                              statuses()[absIdx()] ?? "pending";
                             const isPacerHere = () =>
                               kineticSettings().ghostPacer &&
-                              Math.floor(pacerPos) === startCharIdx + cIdx();
+                              Math.floor(pacerPos) === absIdx();
+
+                            const charColorClass = () => {
+                              const s = charStatus();
+                              if (isCurrentChar()) {
+                                if (s === "error") {
+                                  return "bg-rose-500/30 text-rose-400 ring-1 ring-rose-500 rounded px-0.5 font-bold animate-pulse";
+                                }
+                                return "font-bold text-main";
+                              }
+                              if (s === "corrected_error") {
+                                return "text-rose-500 font-bold drop-shadow-[0_0_4px_rgba(244,63,94,0.3)]";
+                              }
+                              if (s === "correct") {
+                                return "text-text";
+                              }
+                              return "text-sub/50";
+                            };
 
                             return (
                               <span
                                 class={cn(
                                   "relative transition-colors duration-75",
-                                  isPastChar() && "text-text",
-                                  !isPastChar() &&
-                                    !isCurrentChar() &&
-                                    "text-sub/50",
-                                  isCurrentChar() &&
-                                    hasErr &&
-                                    "bg-rose-500/30 text-rose-400 rounded px-0.5",
-                                  isCurrentChar() &&
-                                    !hasErr &&
-                                    "font-bold text-main",
+                                  charColorClass(),
                                 )}
                               >
                                 {/* Cursor pulse underline */}

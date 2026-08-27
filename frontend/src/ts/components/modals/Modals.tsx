@@ -10,6 +10,7 @@ import { EditResultTagsModal } from "./EditResultTagsModal";
 import { ForgotPasswordModal } from "./ForgotPasswordModal";
 import { GoogleSignupModal } from "./GoogleSignUpModal";
 import { KeybrSettingsModal } from "./KeybrSettingsModal";
+import { KineticSessionReportModal } from "./KineticSessionReportModal";
 import { KineticSettingsModal } from "./KineticSettingsModal";
 import { LastSignedOutResultModal } from "./LastSignedOutResultModal";
 import { MobileTestConfigModal } from "./MobileTestConfigModal";
@@ -40,6 +41,7 @@ export function Modals(): JSXElement {
       <TrainingModal />
       <KeybrSettingsModal />
       <KineticSettingsModal />
+      <KineticSessionReportModal />
       <QuoteRateModal />
       <QuoteReportModal />
       <QuoteSearchModal />

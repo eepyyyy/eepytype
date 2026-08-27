@@ -19,6 +19,7 @@ export type ModalId =
   | "TrainingModal"
   | "KeybrSettingsModal"
   | "KineticSettingsModal"
+  | "KineticSessionReportModal"
   | "WordFilter"
   | "CustomGenerator"
   | "QuoteSearch"

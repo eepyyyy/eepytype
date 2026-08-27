@@ -22,7 +22,12 @@ import {
   generateMultiQueueDrill,
   partitionTransitions,
 } from "../../src/ts/utils/kinetic/multi-queue";
-import { calculateProjectedMilestones } from "../../src/ts/states/kinetic";
+import {
+  calculateProjectedMilestones,
+  getMistakeRemediationLetters,
+  recordMistake,
+  setRepeatedMistakes,
+} from "../../src/ts/states/kinetic";
 
 describe("Kinetic Glicko-2 Transition Rating Engine", () => {
   it("should calculate expected IKI and speed WPM from rating mu", () => {
@@ -300,5 +305,22 @@ describe("Custom Corpus Ingestion & Projection Forecast Engine", () => {
     expect(projection.targetWpm).toBe(70);
     expect(projection.estimatedPracticeHours).toBeGreaterThan(0);
     expect(projection.estimatedDaysAt15MinDaily).toBeGreaterThan(0);
+  });
+});
+
+describe("Automated Mistake Tracking & Remediation Pipeline", () => {
+  it("should record repeated character mistakes and rank remediation letters", () => {
+    setRepeatedMistakes({});
+    recordMistake("r", "e", "water");
+    recordMistake("r", "t", "train");
+    recordMistake("r", "e", "write");
+    recordMistake("e", "w", "test");
+    recordMistake("e", "w", "practice");
+    recordMistake("t", "y", "time");
+
+    const letters = getMistakeRemediationLetters();
+    expect(letters[0]).toBe("r");
+    expect(letters[1]).toBe("e");
+    expect(letters).toContain("t");
   });
 });
