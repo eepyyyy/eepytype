@@ -11,8 +11,12 @@ import {
   generateKeybrLessonWords,
 } from "../utils/keybr/phonetic-model";
 import {
+  calculateRecentAccuracy,
   computeConfidence,
+  computeKeyMasteryScore,
   ExponentialFilter,
+  getTopWeakBigrams,
+  getTopWeakKeys,
   KeyCalibrationData,
   KeybrDailyGoal,
   KeybrStreak,
@@ -25,6 +29,15 @@ export type KeybrWidthMode = "full" | "wide" | "normal" | "compact";
 export type KeybrFontSize = "small" | "medium" | "large" | "xlarge";
 export type KeybrTextAlign = "left" | "center";
 export type KeybrSeparator = "dot" | "space";
+export type KeybrTraceMode = "all" | "errors" | "focus" | "off";
+
+export type KeybrTransitionRecord = {
+  fromKey: string;
+  toKey: string;
+  error: boolean;
+  timeMs: number;
+  id: number;
+};
 
 export type KeybrSettings = {
   targetWpm: number;
@@ -38,6 +51,7 @@ export type KeybrSettings = {
   fontSize: KeybrFontSize;
   textAlign: KeybrTextAlign;
   separator: KeybrSeparator;
+  traceMode: KeybrTraceMode;
 };
 
 const DEFAULT_SETTINGS: KeybrSettings = {
@@ -52,6 +66,7 @@ const DEFAULT_SETTINGS: KeybrSettings = {
   fontSize: "large",
   textAlign: "left",
   separator: "dot",
+  traceMode: "all",
 };
 
 const STORAGE_KEY = "eepytype_keybr_state_v1";
@@ -72,6 +87,12 @@ function createDefaultKeyMap(
       bestSpeed: null,
       confidence: null,
       bestConfidence: null,
+      accuracy: 1.0,
+      masteryScore: 0,
+      totalHits: 0,
+      totalMisses: 0,
+      consecutiveMissDrills: 0,
+      transitions: {},
       isIncluded,
       isFocused: index === 0, // start with 'e'
       isForced: false,
@@ -88,7 +109,15 @@ export const [keyCalibrationMap, setKeyCalibrationMap] = createSignal<
   Record<string, KeyCalibrationData>
 >(createDefaultKeyMap(DEFAULT_SETTINGS.targetWpm));
 export const [focusedKey, setFocusedKey] = createSignal<string>("e");
+export const [focusedWeakBigrams, setFocusedWeakBigrams] = createSignal<
+  string[]
+>([]);
+export const [isRemediationActive, setIsRemediationActive] =
+  createSignal<boolean>(false);
 export const [depressedKeys, setDepressedKeys] = createSignal<string[]>([]);
+export const [recentTransitions, setRecentTransitions] = createSignal<
+  KeybrTransitionRecord[]
+>([]);
 export const [summaryMetrics, setSummaryMetrics] =
   createSignal<KeybrSummaryMetrics>({
     speed: { last: 0, delta: 0 },
@@ -124,6 +153,8 @@ export const [lessonMisses, setLessonMisses] = createSignal<
 >({});
 export const [lessonStartTime, setLessonStartTime] = createSignal<number>(0);
 let lastKeystrokeTime = 0;
+let lastTypedChar = "";
+let transitionIdCounter = 0;
 let afkPausedMs = 0;
 const AFK_THRESHOLD_MS = 1500;
 
@@ -215,6 +246,7 @@ export function recordKeystroke(
   char: string,
   timeToTypeMs: number,
   correct: boolean,
+  prevChar?: string | null,
 ): void {
   const lower = char.toLowerCase();
   const currentMap = { ...keyCalibrationMap() };
@@ -243,15 +275,40 @@ export function recordKeystroke(
   const confidence = computeConfidence(filteredTime, targetWpm);
   const bestConfidence = computeConfidence(bestTimeToType, targetWpm);
 
+  const allSamples = [...keyData.samples.slice(-40), newSample];
+  const recentAcc = calculateRecentAccuracy(allSamples);
+  const mastery = computeKeyMasteryScore(speed, recentAcc, targetWpm);
+
+  // Update bigram transition tracking if previous char is a letter
+  const transitions = { ...(keyData.transitions ?? {}) };
+  if (prevChar?.length === 1 && prevChar !== "·") {
+    const prevLower = prevChar.toLowerCase();
+    const existing = transitions[prevLower] ?? {
+      count: 0,
+      errors: 0,
+      avgTimeMs: timeToTypeMs,
+    };
+    transitions[prevLower] = {
+      count: existing.count + 1,
+      errors: existing.errors + (correct ? 0 : 1),
+      avgTimeMs: Math.round((existing.avgTimeMs + timeToTypeMs) / 2),
+    };
+  }
+
   currentMap[lower] = {
     ...keyData,
-    samples: [...keyData.samples.slice(-40), newSample],
+    samples: allSamples,
     timeToType: filteredTime,
     bestTimeToType,
     speed,
     bestSpeed,
     confidence,
     bestConfidence,
+    accuracy: recentAcc,
+    masteryScore: mastery,
+    totalHits: keyData.totalHits + (correct ? 1 : 0),
+    totalMisses: keyData.totalMisses + (correct ? 0 : 1),
+    transitions,
   };
 
   setKeyCalibrationMap(currentMap);
@@ -305,21 +362,39 @@ export function completeKeybrLesson(
     score: { last: score, delta: scoreDelta },
   });
 
-  // Check progression & unlock logic
   const settings = keybrSettings();
   const currentMap = { ...keyCalibrationMap() };
   const unlockedLetters = KEYBR_ENGLISH_ORDER.filter(
     (k) => currentMap[k]?.isIncluded,
   );
 
+  // Update consecutive miss drills on each unlocked letter
+  for (const k of unlockedLetters) {
+    const kData = currentMap[k];
+    if (!kData) continue;
+    const kMisses = misses[k] ?? 0;
+    const kHits = hits[k] ?? 0;
+
+    let missStreak = kData.consecutiveMissDrills ?? 0;
+    if (kMisses > 0) {
+      missStreak += 1;
+    } else if (kHits > 0 && kMisses === 0) {
+      missStreak = Math.max(0, missStreak - 1);
+    }
+    currentMap[k] = { ...kData, consecutiveMissDrills: missStreak };
+  }
+
+  // Check progression & unlock logic
+  // Unlocking requires high speed (confidence >= 1.0) AND solid accuracy (>= 0.92)
   if (settings.autoUnlock) {
-    // Check if all unlocked letters have reached target speed (confidence >= 1.0)
-    const allConfident = unlockedLetters.every((k) => {
+    const allMastered = unlockedLetters.every((k) => {
       const data = currentMap[k];
-      return (data?.bestConfidence ?? 0) >= 1.0;
+      const speedConf = (data?.bestConfidence ?? 0) >= 1.0;
+      const accGood = (data?.accuracy ?? 1.0) >= 0.92;
+      return speedConf && accGood;
     });
 
-    if (allConfident && unlockedLetters.length < KEYBR_ENGLISH_ORDER.length) {
+    if (allMastered && unlockedLetters.length < KEYBR_ENGLISH_ORDER.length) {
       const nextKey = KEYBR_ENGLISH_ORDER[unlockedLetters.length];
       if (nextKey && currentMap[nextKey]) {
         currentMap[nextKey] = {
@@ -330,20 +405,25 @@ export function completeKeybrLesson(
     }
   }
 
-  // Find weakest key to focus on
+  // Find weakest key to focus on using composite weakness ranking
   const includedKeys = KEYBR_ENGLISH_ORDER.filter(
     (k) => currentMap[k]?.isIncluded,
   );
-  let weakest = includedKeys[0] ?? "e";
-  let minConf = Infinity;
+  const rankedWeakKeys = getTopWeakKeys(currentMap, includedKeys);
+  const weakest = rankedWeakKeys[0] ?? "e";
+  const weakestData = currentMap[weakest];
 
-  for (const k of includedKeys) {
-    const conf = currentMap[k]?.confidence ?? 0;
-    if (conf < minConf) {
-      minConf = conf;
-      weakest = k;
-    }
-  }
+  // If weakest key has low accuracy or consecutive miss drills, activate remediation mode
+  const needsRemediation =
+    (weakestData?.accuracy ?? 1.0) < 0.92 ||
+    (weakestData?.consecutiveMissDrills ?? 0) > 0 ||
+    (weakestData?.masteryScore ?? 0) < 0.85;
+
+  setIsRemediationActive(needsRemediation);
+
+  // Extract weak bigram transitions for focused key
+  const weakBigrams = getTopWeakBigrams(weakestData?.transitions, 5);
+  setFocusedWeakBigrams(weakBigrams);
 
   // Mark focused key
   for (const k of KEYBR_ENGLISH_ORDER) {
@@ -371,10 +451,19 @@ export function startKeybrDrill(): void {
   const unlocked = KEYBR_ENGLISH_ORDER.filter((k) => map[k]?.isIncluded);
   const focused = focusedKey();
   const settings = keybrSettings();
+  const remediation = isRemediationActive();
+  const targetedBigrams = focusedWeakBigrams();
+
+  // Secondary weak keys for blended practice
+  const rankedWeak = getTopWeakKeys(map, unlocked);
+  const secondaryChars = rankedWeak.slice(1, 3);
 
   const words = generateKeybrLessonWords({
     unlockedChars: unlocked,
     focusedChar: focused,
+    targetedBigrams,
+    secondaryChars,
+    remediationMode: remediation,
     minLength: 3,
     maxLength: 8,
     withCapitals: settings.withCapitals,
@@ -389,14 +478,16 @@ export function startKeybrDrill(): void {
   setHasError(false);
   setLessonHits({});
   setLessonMisses({});
+  setRecentTransitions([]);
   setLessonStartTime(0);
   lastKeystrokeTime = 0;
+  lastTypedChar = "";
   afkPausedMs = 0;
 
-  const fullText = words.join(" ");
-  const drillTitle = `Keybr Practice [Key: ${focused.toUpperCase()} | ${unlocked.length}/26 Keys]`;
+  const drillType = remediation ? "REMEDIATION" : "PRACTICE";
+  const drillTitle = `Keybr ${drillType} [Key: ${focused.toUpperCase()} | ${unlocked.length}/26 Keys]`;
 
-  CustomText.setCustomText(drillTitle, fullText, false);
+  CustomText.setCustomText(drillTitle, words.join(" "), false);
   CustomText.setMode("repeat");
   CustomText.setPipeDelimiter(false);
   CustomText.setText(words);
@@ -477,7 +568,6 @@ export function handleKeybrInput(event: KeyboardEvent): void {
   if (lastKeystrokeTime > 0) {
     const rawGap = now - lastKeystrokeTime;
     if (rawGap > AFK_THRESHOLD_MS) {
-      // User was AFK: pause the timer for the excess idle duration
       afkPausedMs += rawGap - AFK_THRESHOLD_MS;
       delta = AFK_THRESHOLD_MS;
     } else {
@@ -486,17 +576,38 @@ export function handleKeybrInput(event: KeyboardEvent): void {
   }
   lastKeystrokeTime = now;
 
+  const prevChar = lastTypedChar;
+  const currChar = expected === "·" ? "space" : expected.toLowerCase();
+
+  // Push bigram transition for live keyboard SVG arc visualization
+  if (
+    prevChar !== "" &&
+    prevChar !== "space" &&
+    currChar !== "space" &&
+    prevChar !== currChar
+  ) {
+    const newTrans: KeybrTransitionRecord = {
+      fromKey: prevChar,
+      toKey: currChar,
+      error: !isMatch,
+      timeMs: delta,
+      id: ++transitionIdCounter,
+    };
+    setRecentTransitions((prev) => [...prev.slice(-25), newTrans]);
+  }
+
   if (isMatch) {
     const isFirstAttempt = !hasError();
     const hits = { ...lessonHits() };
-    const charKey = expected === "·" ? "space" : expected.toLowerCase();
+    const charKey = currChar;
     hits[charKey] = (hits[charKey] ?? 0) + (isFirstAttempt ? 1 : 0);
     setLessonHits(hits);
 
     if (expected !== "·") {
-      recordKeystroke(expected, delta, isFirstAttempt);
+      recordKeystroke(expected, delta, isFirstAttempt, prevChar);
     }
 
+    lastTypedChar = currChar;
     setHasError(false);
     void SoundController.playClick();
 
@@ -504,7 +615,7 @@ export function handleKeybrInput(event: KeyboardEvent): void {
     setCursorIndex(next);
 
     if (next >= text.length) {
-      // Finished lesson - compute active typing duration minus AFK paused duration
+      // Finished lesson
       const totalElapsed =
         Date.now() - (lessonStartTime() || Date.now() - 5000);
       const activeDurationMs = Math.max(1000, totalElapsed - afkPausedMs);
@@ -524,12 +635,12 @@ export function handleKeybrInput(event: KeyboardEvent): void {
     // Error on key press: turn red, wait for correct key without advancing
     setHasError(true);
     const misses = { ...lessonMisses() };
-    const charKey = expected === "·" ? "space" : expected.toLowerCase();
+    const charKey = currChar;
     misses[charKey] = (misses[charKey] ?? 0) + 1;
     setLessonMisses(misses);
 
     if (expected !== "·") {
-      recordKeystroke(expected, delta, false);
+      recordKeystroke(expected, delta, false, prevChar);
     }
 
     void SoundController.playError();
@@ -541,6 +652,9 @@ export function resetAllKeybrProgress(): void {
   letterFilters.clear();
   setKeyCalibrationMap(createDefaultKeyMap(DEFAULT_SETTINGS.targetWpm));
   setFocusedKey("e");
+  setFocusedWeakBigrams([]);
+  setIsRemediationActive(false);
+  setRecentTransitions([]);
   setSummaryMetrics({
     speed: { last: 0, delta: 0 },
     accuracy: { last: 0, delta: 0 },

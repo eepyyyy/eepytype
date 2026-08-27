@@ -1,10 +1,20 @@
-import { For, JSXElement, Show } from "solid-js";
+import {
+  createEffect,
+  createSignal,
+  For,
+  JSXElement,
+  onCleanup,
+  onMount,
+  Show,
+} from "solid-js";
 
 import {
   depressedKeys,
   focusedKey,
   keyCalibrationMap,
+  keybrSettings,
   lastLessonHeatmap,
+  recentTransitions,
 } from "../../../../states/keybr";
 import { cn } from "../../../../utils/cn";
 
@@ -266,40 +276,208 @@ const KEY_ROWS: KeyDef[][] = [
 ];
 
 export function KeybrKeyboard(): JSXElement {
+  let containerRef: HTMLDivElement | null = null;
+  const keyElementRefs = new Map<string, HTMLElement>();
+
+  const [keyCenters, setKeyCenters] = createSignal<
+    Record<string, { x: number; y: number }>
+  >({});
+
+  // Recalculate key center coordinates relative to container
+  const updateKeyPositions = () => {
+    if (containerRef === null) return;
+    const cRect = containerRef.getBoundingClientRect();
+    const map: Record<string, { x: number; y: number }> = {};
+
+    for (const [keyId, el] of keyElementRefs.entries()) {
+      if (el !== undefined && el !== null) {
+        const kRect = el.getBoundingClientRect();
+        map[keyId] = {
+          x: kRect.left - cRect.left + kRect.width / 2,
+          y: kRect.top - cRect.top + kRect.height / 2,
+        };
+      }
+    }
+    setKeyCenters(map);
+  };
+
+  onMount(() => {
+    updateKeyPositions();
+    window.addEventListener("resize", updateKeyPositions);
+
+    let ro: ResizeObserver | undefined;
+    if (containerRef !== null && typeof ResizeObserver !== "undefined") {
+      ro = new ResizeObserver(() => updateKeyPositions());
+      ro.observe(containerRef);
+    }
+
+    onCleanup(() => {
+      window.removeEventListener("resize", updateKeyPositions);
+      ro?.disconnect();
+    });
+  });
+
+  createEffect(() => {
+    focusedKey();
+    keyCalibrationMap();
+    setTimeout(updateKeyPositions, 50);
+  });
+
+  const renderedArcs = () => {
+    const mode = keybrSettings().traceMode ?? "all";
+    if (mode === "off") return [];
+
+    const transitions = recentTransitions();
+    const centers = keyCenters();
+    const focus = focusedKey().toLowerCase();
+
+    const filtered = transitions.filter((t) => {
+      if (mode === "errors") return t.error;
+      if (mode === "focus") {
+        return (
+          t.fromKey.toLowerCase() === focus || t.toKey.toLowerCase() === focus
+        );
+      }
+      return true;
+    });
+
+    const arcs = [];
+    for (let idx = 0; idx < filtered.length; idx++) {
+      const t = filtered[idx];
+      if (!t) continue;
+      const p1 = centers[t.fromKey.toLowerCase()];
+      const p2 = centers[t.toKey.toLowerCase()];
+      if (!p1 || !p2) continue;
+
+      const dx = p2.x - p1.x;
+      const dy = p2.y - p1.y;
+      const dist = Math.sqrt(dx * dx + dy * dy) || 1;
+
+      const curvature = Math.min(45, Math.max(16, dist * 0.25));
+      const midX = (p1.x + p2.x) / 2;
+      const midY = (p1.y + p2.y) / 2;
+
+      const nx = -dy / dist;
+      const ny = dx / dist;
+
+      const sign = ny < 0 ? -1 : 1;
+      const cx = midX + nx * curvature * sign;
+      const cy = midY + ny * curvature * sign - 6;
+
+      const isRecent = idx >= filtered.length - 4;
+      const opacity = isRecent ? (t.error ? 0.85 : 0.65) : 0.35;
+      const strokeColor = t.error ? "#f43f5e" : "#38bdf8";
+
+      arcs.push({
+        id: t.id,
+        path: `M ${p1.x.toFixed(1)} ${p1.y.toFixed(1)} Q ${cx.toFixed(1)} ${cy.toFixed(1)} ${p2.x.toFixed(1)} ${p2.y.toFixed(1)}`,
+        strokeColor,
+        opacity,
+        isError: t.error,
+        isRecent,
+      });
+    }
+
+    return arcs;
+  };
+
+  const focusPos = () => keyCenters()[focusedKey().toLowerCase()];
+
   return (
-    <div class="relative mx-auto flex w-full max-w-4xl flex-col items-center gap-1.5 rounded-2xl border border-sub-alt/40 bg-[#1e2023]/95 p-4 font-mono shadow-2xl backdrop-blur-md select-none">
+    <div
+      ref={(el) => {
+        containerRef = el;
+      }}
+      class="relative mx-auto flex w-full max-w-4xl flex-col items-center gap-1.5 rounded-2xl border border-sub-alt/40 bg-[#1e2023]/95 p-4 font-mono shadow-2xl backdrop-blur-md select-none"
+    >
       {/* Dynamic Key Motion Flow SVG Overlay */}
       <svg
-        class="pointer-events-none absolute inset-0 h-full w-full opacity-40"
+        class="pointer-events-none absolute inset-0 z-20 h-full w-full overflow-visible"
         xmlns="http://www.w3.org/2000/svg"
       >
         <defs>
-          <radialGradient id="heatGlow" cx="50%" cy="50%" r="50%">
+          <radialGradient id="focusGlow" cx="50%" cy="50%" r="50%">
             <stop
               offset="0%"
               style={{ "stop-color": "#38bdf8", "stop-opacity": "0.6" }}
+            ></stop>
+            <stop
+              offset="80%"
+              style={{ "stop-color": "#38bdf8", "stop-opacity": "0.15" }}
             ></stop>
             <stop
               offset="100%"
               style={{ "stop-color": "#38bdf8", "stop-opacity": "0" }}
             ></stop>
           </radialGradient>
+
+          {/* Arrowhead markers */}
+          <marker
+            id="arrow-cyan"
+            viewBox="0 0 10 10"
+            refX="6"
+            refY="5"
+            markerWidth="6"
+            markerHeight="6"
+            orient="auto-start-reverse"
+          >
+            <path d="M 0 1 L 8 5 L 0 9 z" fill="#38bdf8" opacity="0.8"></path>
+          </marker>
+          <marker
+            id="arrow-rose"
+            viewBox="0 0 10 10"
+            refX="6"
+            refY="5"
+            markerWidth="6"
+            markerHeight="6"
+            orient="auto-start-reverse"
+          >
+            <path d="M 0 1 L 8 5 L 0 9 z" fill="#f43f5e" opacity="0.9"></path>
+          </marker>
         </defs>
-        {/* Heatmap transition flow arcs connecting active home row and vowels */}
-        <path
-          d="M 230 75 Q 310 50 350 75 T 460 75"
-          fill="none"
-          stroke="#38bdf8"
-          style={{ "stroke-width": "1.5", "stroke-dasharray": "3 3" }}
-        ></path>
-        <path
-          d="M 220 110 Q 300 120 400 110"
-          fill="none"
-          stroke="#818cf8"
-          style={{ "stroke-width": "1.5", "stroke-dasharray": "4 2" }}
-        ></path>
-        <circle cx="310" cy="75" r="22" fill="url(#heatGlow)"></circle>
-        <circle cx="360" cy="75" r="28" fill="url(#heatGlow)"></circle>
+
+        {/* Focused Key Halo Glow & Outer Rings */}
+        <Show when={focusPos()}>
+          {(pos) => (
+            <g class="animate-pulse duration-1000">
+              <circle
+                cx={pos().x}
+                cy={pos().y}
+                r="30"
+                fill="url(#focusGlow)"
+              ></circle>
+              <circle
+                cx={pos().x}
+                cy={pos().y}
+                r="24"
+                fill="none"
+                stroke="#38bdf8"
+                style={{ "stroke-width": "1.5", "stroke-dasharray": "3 3" }}
+                opacity="0.8"
+              ></circle>
+            </g>
+          )}
+        </Show>
+
+        {/* Dynamic Keystroke Transition Arcs with Arrowheads */}
+        <For each={renderedArcs()}>
+          {(arc) => (
+            <path
+              d={arc.path}
+              fill="none"
+              stroke={arc.strokeColor}
+              style={{
+                "stroke-width": arc.isRecent ? "2.0" : "1.4",
+                "stroke-dasharray": arc.isError ? "4 2" : "none",
+                "marker-end": arc.isError
+                  ? "url(#arrow-rose)"
+                  : "url(#arrow-cyan)",
+              }}
+              opacity={arc.opacity}
+              class="transition-all duration-300"
+            ></path>
+          )}
+        </For>
       </svg>
 
       <For each={KEY_ROWS}>
@@ -317,18 +495,26 @@ export function KeybrKeyboard(): JSXElement {
 
                 const missCount = () =>
                   lastLessonHeatmap().misses[lowerId] ?? 0;
+                const hitCount = () => keyStats()?.totalHits ?? 0;
+                const totalMisses = () => keyStats()?.totalMisses ?? 0;
+                const isIncluded = () => keyStats()?.isIncluded ?? false;
                 const hasWidth = keyDef.width !== undefined && keyDef.width > 0;
                 const hasTopLabel =
                   keyDef.topLabel !== undefined && keyDef.topLabel !== "";
 
                 return (
                   <div
+                    ref={(el) => {
+                      if (el !== undefined && el !== null) {
+                        keyElementRefs.set(lowerId, el);
+                      }
+                    }}
                     class={cn(
                       "relative flex h-9.5 items-center justify-center rounded-sm text-[11px] font-semibold shadow-xs transition-all duration-75",
                       keyDef.colorClass,
                       hasWidth ? "grow" : "w-9.5",
                       isFocused() &&
-                        "ring-white z-10 ring-2 ring-offset-1 ring-offset-[#1e2023] brightness-110",
+                        "z-10 ring-2 ring-main ring-offset-1 ring-offset-[#1e2023] brightness-110",
                       isDepressed() &&
                         "translate-y-0.5 scale-95 shadow-inner brightness-140",
                     )}
@@ -348,6 +534,7 @@ export function KeybrKeyboard(): JSXElement {
 
                     <span
                       class={cn(
+                        "z-10",
                         hasTopLabel ? "absolute bottom-0.5 left-1" : "",
                       )}
                     >
@@ -355,20 +542,44 @@ export function KeybrKeyboard(): JSXElement {
                     </span>
 
                     {/* Homing bump */}
-                    <Show when={keyDef.hasBump}>
+                    <Show when={keyDef.hasBump === true}>
                       <div class="bg-white/70 absolute bottom-1 h-0.5 w-2 rounded-full"></div>
                     </Show>
 
-                    {/* Hit Pie / Heat Indicator Arc */}
-                    <Show when={keyStats()?.isIncluded}>
-                      <div class="pointer-events-none absolute inset-0 flex items-center justify-center opacity-30">
-                        <div class="border-white/60 h-4 w-4 rounded-full border"></div>
+                    {/* Keybr Split-Circle / Wedge Heatmap Indicator (Hits vs Misses) */}
+                    <Show when={isIncluded()}>
+                      <div class="pointer-events-none absolute inset-0 flex items-center justify-center overflow-hidden">
+                        <svg viewBox="0 0 32 32" class="h-6.5 w-6.5 opacity-60">
+                          {/* Top Semi-Circle / Arc: Hit density */}
+                          <path
+                            d="M 4 16 A 12 12 0 0 1 28 16 Z"
+                            fill={
+                              hitCount() > 0
+                                ? "rgba(56, 189, 248, 0.45)"
+                                : "rgba(255, 255, 255, 0.15)"
+                            }
+                            stroke="rgba(255, 255, 255, 0.3)"
+                            style={{ "stroke-width": "0.75" }}
+                          ></path>
+
+                          {/* Bottom Semi-Circle / Arc: Error / Miss density */}
+                          <path
+                            d="M 4 16 A 12 12 0 0 0 28 16 Z"
+                            fill={
+                              totalMisses() > 0 || missCount() > 0
+                                ? "rgba(244, 63, 94, 0.65)"
+                                : "rgba(255, 255, 255, 0.1)"
+                            }
+                            stroke="rgba(255, 255, 255, 0.3)"
+                            style={{ "stroke-width": "0.75" }}
+                          ></path>
+                        </svg>
                       </div>
                     </Show>
 
                     {/* Miss error badge */}
                     <Show when={missCount() > 0}>
-                      <span class="bg-rose-600 text-white absolute -top-1 -right-1 flex h-4 w-4 items-center justify-center rounded-full text-[9px] font-extrabold shadow-md">
+                      <span class="bg-rose-600 text-white absolute -top-1 -right-1 z-20 flex h-4 w-4 items-center justify-center rounded-full text-[9px] font-extrabold shadow-md">
                         {missCount()}
                       </span>
                     </Show>

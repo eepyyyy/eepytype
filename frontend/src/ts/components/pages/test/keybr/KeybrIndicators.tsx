@@ -5,8 +5,11 @@ import {
   cycleKeybrWidthMode,
   dailyGoal,
   focusedKey,
+  focusedWeakBigrams,
+  isRemediationActive,
   keyCalibrationMap,
   keybrSettings,
+  KeybrTraceMode,
   resetKeybrLesson,
   skipKeybrLesson,
   streaks,
@@ -18,6 +21,7 @@ import { cn } from "../../../../utils/cn";
 import {
   calculateLearningRate,
   getConfidenceColor,
+  getTopWeakBigrams,
   KeyCalibrationData,
 } from "../../../../utils/keybr/key-calibration";
 import { KEYBR_ENGLISH_ORDER } from "../../../../utils/keybr/phonetic-model";
@@ -72,6 +76,13 @@ export function KeybrIndicators(): JSXElement {
     const current = keybrSettings().viewMode;
     const next = modes[(modes.indexOf(current) + 1) % modes.length] ?? "normal";
     updateKeybrSettings({ viewMode: next });
+  };
+
+  const cycleTraceMode = () => {
+    const modes: KeybrTraceMode[] = ["all", "errors", "focus", "off"];
+    const current = keybrSettings().traceMode ?? "all";
+    const next = modes[(modes.indexOf(current) + 1) % modes.length] ?? "all";
+    updateKeybrSettings({ traceMode: next });
   };
 
   return (
@@ -150,6 +161,19 @@ export function KeybrIndicators(): JSXElement {
 
         {/* Top Right Action Toolbar */}
         <div class="flex items-center gap-1 text-sub">
+          {/* Traces Toggle */}
+          <button
+            type="button"
+            title={`Keyboard Traces: ${keybrSettings().traceMode ?? "all"}`}
+            onClick={cycleTraceMode}
+            class="flex items-center gap-1 rounded-md px-2 py-1 text-xs font-semibold transition-all hover:bg-sub-alt/40 hover:text-text"
+          >
+            <Fa icon="fa-project-diagram" />
+            <span class="hidden text-[10px] uppercase sm:inline">
+              Traces: {keybrSettings().traceMode ?? "all"}
+            </span>
+          </button>
+
           {/* Width Mode Toggle */}
           <button
             type="button"
@@ -272,7 +296,7 @@ export function KeybrIndicators(): JSXElement {
       {/* Row 3: Current key info + Accuracy + Daily goal */}
       <div class="grid grid-cols-1 gap-2 pt-1 sm:grid-cols-3 sm:gap-4">
         {/* Current Focus Key */}
-        <div class="flex items-center gap-2.5">
+        <div class="flex flex-wrap items-center gap-2">
           <span class="text-[11px] font-bold tracking-wider text-sub/70 uppercase">
             Current key:
           </span>
@@ -300,10 +324,17 @@ export function KeybrIndicators(): JSXElement {
               ? `+${currentLr().learningRate}wpm`
               : "+0.3wpm"}
           </span>
+
+          {/* Remediation Status Tag */}
+          <Show when={isRemediationActive()}>
+            <span class="bg-rose-500/20 text-rose-400 border-rose-500/30 rounded border px-1.5 py-0.5 text-[9px] font-extrabold">
+              REMEDIATION
+            </span>
+          </Show>
         </div>
 
-        {/* Accuracy Streak */}
-        <div class="flex items-center gap-2">
+        {/* Accuracy Streak & Weak Bigrams */}
+        <div class="flex flex-wrap items-center gap-2">
           <span class="text-[11px] font-bold tracking-wider text-sub/70 uppercase">
             Accuracy:
           </span>
@@ -315,6 +346,11 @@ export function KeybrIndicators(): JSXElement {
                 : "Target 95% accuracy";
             })()}
           </span>
+          <Show when={focusedWeakBigrams().length > 0}>
+            <span class="text-amber-400/90 text-[10px] font-semibold">
+              [Focus: {focusedWeakBigrams().join(", ")}]
+            </span>
+          </Show>
         </div>
 
         {/* Daily Goal */}
@@ -340,10 +376,18 @@ export function KeybrIndicators(): JSXElement {
       <Show when={hoveredKey()}>
         {(stats) => {
           const lr = () => calculateLearningRate(stats().samples);
+          const weakBigrams = () => getTopWeakBigrams(stats().transitions, 3);
+          const totalHits = () => stats().totalHits ?? 0;
+          const totalMisses = () => stats().totalMisses ?? 0;
+          const totalKeystrokes = () => totalHits() + totalMisses();
+          const accPercent = () =>
+            totalKeystrokes() > 0
+              ? Math.round((totalHits() / totalKeystrokes()) * 100)
+              : 100;
 
           return (
             <div
-              class="animate-in fade-in zoom-in-95 pointer-events-none fixed z-50 flex -translate-x-1/2 -translate-y-full flex-col gap-1 rounded-xl border border-sub-alt bg-bg/95 p-3 font-mono text-xs text-text shadow-xl backdrop-blur-md duration-150"
+              class="animate-in fade-in zoom-in-95 pointer-events-none fixed z-50 flex min-w-[200px] -translate-x-1/2 -translate-y-full flex-col gap-1 rounded-xl border border-sub-alt bg-bg/95 p-3 font-mono text-xs text-text shadow-xl backdrop-blur-md duration-150"
               style={{
                 left: `${tooltipPos()?.x ?? 0}px`,
                 top: `${tooltipPos()?.y ?? 0}px`,
@@ -382,6 +426,19 @@ export function KeybrIndicators(): JSXElement {
                   </span>
                 </div>
                 <div class="flex justify-between gap-4 text-sub">
+                  <span>Accuracy:</span>
+                  <span
+                    class={cn(
+                      "font-bold",
+                      accPercent() >= 95
+                        ? "text-emerald-400"
+                        : "text-amber-400",
+                    )}
+                  >
+                    {accPercent()}% ({totalHits()}h / {totalMisses()}m)
+                  </span>
+                </div>
+                <div class="flex justify-between gap-4 text-sub">
                   <span>Learning Rate:</span>
                   <span class="text-emerald-400 font-bold">
                     {lr().learningRate !== null
@@ -395,6 +452,17 @@ export function KeybrIndicators(): JSXElement {
                     {stats().samples.length}
                   </span>
                 </div>
+
+                <Show when={weakBigrams().length > 0}>
+                  <div class="mt-1 flex justify-between gap-2 border-t border-sub-alt/30 pt-1 text-[10px]">
+                    <span class="text-rose-400 font-semibold">
+                      Weak Transitions:
+                    </span>
+                    <span class="font-bold text-text uppercase">
+                      {weakBigrams().join(", ")}
+                    </span>
+                  </div>
+                </Show>
               </div>
             </div>
           );

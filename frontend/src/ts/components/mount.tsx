@@ -26,6 +26,7 @@ import { CapsWarning } from "./pages/test/CapsWarning";
 import { CompositionDisplay } from "./pages/test/CompositionDisplay";
 import { KeybrContainer } from "./pages/test/keybr/KeybrContainer";
 import { Keymap } from "./pages/test/Keymap";
+import { KineticContainer } from "./pages/test/kinetic/KineticContainer";
 import { BarTimerProgress } from "./pages/test/live-stats/BarTimerProgress";
 import { LiveStatsMini } from "./pages/test/live-stats/LiveStatsMini";
 import { LiveStatsTextBottom } from "./pages/test/live-stats/LiveStatsTextBottom";
@@ -72,6 +73,7 @@ const components: Record<string, () => JSXElement> = {
   premid: () => <Premid />,
   trainingsidebar: () => <TrainingSidebar />,
   keybrcontainer: () => <KeybrContainer />,
+  kineticcontainer: () => <KineticContainer />,
 };
 
 function mountToMountpoint(name: string, component: () => JSXElement): void {

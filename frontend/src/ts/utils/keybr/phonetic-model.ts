@@ -235,11 +235,15 @@ function getPhoneticEngine(): {
 export type WordGenOptions = {
   unlockedChars: string[];
   focusedChar?: string | null;
+  targetedBigrams?: string[]; // Problematic letter transitions (e.g. ["er", "re", "tr"])
+  secondaryChars?: string[]; // Other weak characters
+  remediationMode?: boolean; // Intensive weak key training (85-95% saturation)
   minLength?: number;
   maxLength?: number;
   withCapitals?: boolean;
   withPunctuation?: boolean;
   wordCount?: number;
+  errorRemediationQueue?: string[];
 };
 
 export function generateKeybrWord(
@@ -247,6 +251,7 @@ export function generateKeybrWord(
   focusedChar: string | null = null,
   minLength = 3,
   maxLength = 8,
+  targetedBigrams: string[] = [],
 ): string {
   const { table, prefixList } = getPhoneticEngine();
   const allowedSet = new Set(
@@ -263,10 +268,33 @@ export function generateKeybrWord(
   let word: CodePoint[] = [];
   let attempt = 0;
 
+  const validBigramPrefixes = targetedBigrams
+    .filter((bg) => bg.length === 2)
+    .filter((bg) => {
+      const c0 = bg.charCodeAt(0);
+      const c1 = bg.charCodeAt(1);
+      return allowedSet.has(c0) && allowedSet.has(c1);
+    })
+    .map((bg) => [bg.charCodeAt(0), bg.charCodeAt(1)]);
+
   const retry = (): boolean => {
     if (attempt < 6) {
       attempt++;
       word = [];
+
+      // 1. Prefer starting with a targeted weak bigram if available
+      if (validBigramPrefixes.length > 0 && Math.random() < 0.5) {
+        const randBg =
+          validBigramPrefixes[
+            Math.floor(Math.random() * validBigramPrefixes.length)
+          ];
+        if (randBg !== undefined) {
+          word.push(...randBg);
+          return true;
+        }
+      }
+
+      // 2. Otherwise use phonetic prefix list
       if (prefixes.length > 0) {
         const randPrefix =
           prefixes[Math.floor(Math.random() * prefixes.length)];
@@ -284,6 +312,9 @@ export function generateKeybrWord(
   retry();
 
   for (let step = 0; step < 40; step++) {
+    const lastChar =
+      word.length > 0 ? String.fromCharCode(word[word.length - 1] ?? 0) : "";
+
     const entries = table
       .segment(word)
       .filter(({ codePoint }) => {
@@ -299,7 +330,22 @@ export function generateKeybrWord(
             frequency: frequency * Math.pow(1.3, word.length),
           };
         }
-        return { codePoint, frequency };
+
+        let weight = frequency;
+        const candidateChar = String.fromCharCode(codePoint).toLowerCase();
+
+        // Markov transition biasing: boost frequency if transition involves focused char or weak bigram
+        if (focusedCodePoint !== null && codePoint === focusedCodePoint) {
+          weight *= 3.0;
+        }
+        if (lastChar !== "") {
+          const candidateBigram = `${lastChar}${candidateChar}`;
+          if (targetedBigrams.includes(candidateBigram)) {
+            weight *= 4.0;
+          }
+        }
+
+        return { codePoint, frequency: weight };
       });
 
     if (entries.length === 0) {
@@ -357,6 +403,11 @@ export function generateKeybrLessonWords(options: WordGenOptions): string[] {
     options.focusedChar !== null && options.focusedChar !== undefined
       ? options.focusedChar.toLowerCase()
       : null;
+  const bigrams = options.targetedBigrams ?? [];
+  const secondaryChars = (options.secondaryChars ?? []).map((c) =>
+    c.toLowerCase(),
+  );
+  const isRemediation = options.remediationMode ?? false;
 
   // Filter dictionary for natural English words matching current unlocked letters
   const validDictWords = KEYBR_DICTIONARY.filter((w) => {
@@ -367,33 +418,61 @@ export function generateKeybrLessonWords(options: WordGenOptions): string[] {
     return true;
   });
 
-  const focusedDictWords =
-    focusLower !== null
-      ? validDictWords.filter((w) => w.includes(focusLower))
-      : validDictWords;
+  // Score candidate dictionary words by concentration of weak keys and problematic bigrams
+  const scoredDictWords = validDictWords
+    .map((word) => {
+      let score = 0;
+      if (focusLower !== null) {
+        for (const ch of word) {
+          if (ch === focusLower) score += 4;
+        }
+      }
+      for (const bg of bigrams) {
+        if (word.includes(bg)) score += 6;
+      }
+      for (const sc of secondaryChars) {
+        if (word.includes(sc)) score += 2;
+      }
+      return { word, score };
+    })
+    .sort((a, b) => b.score - a.score);
 
-  const generalDictWords =
-    focusLower !== null
-      ? validDictWords.filter((w) => !w.includes(focusLower))
-      : validDictWords;
+  const highRemediationWords = scoredDictWords
+    .filter((sw) => sw.score > 0)
+    .map((sw) => sw.word);
+
+  const generalDictWords = scoredDictWords
+    .filter((sw) => sw.score === 0)
+    .map((sw) => sw.word);
+
+  // In intensive remediation mode: 85-95% of words target the weak key & transitions
+  const targetFocusRatio = isRemediation ? 0.9 : focusLower !== null ? 0.75 : 0;
+
+  // Inject any immediate words from error remediation queue
+  const errorQueue = options.errorRemediationQueue ?? [];
+  for (const qWord of errorQueue) {
+    if (words.length < count && qWord.length >= minLen) {
+      words.push(qWord);
+    }
+  }
 
   let lastWord = "";
-  for (let i = 0; i < count; i++) {
-    const shouldTargetFocus = focusLower !== null && Math.random() < 0.7;
+  while (words.length < count) {
+    const shouldTargetFocus = Math.random() < targetFocusRatio;
     let word = "";
 
-    // 1. Try to pick from dictionary
-    if (shouldTargetFocus && focusedDictWords.length > 0) {
+    // 1. Try dictionary with high weak key / bigram concentration
+    if (shouldTargetFocus && highRemediationWords.length > 0) {
       let attempts = 0;
       do {
         word =
-          focusedDictWords[
-            Math.floor(Math.random() * focusedDictWords.length)
+          highRemediationWords[
+            Math.floor(Math.random() * highRemediationWords.length)
           ] ?? "";
         attempts++;
       } while (
         word === lastWord &&
-        focusedDictWords.length > 1 &&
+        highRemediationWords.length > 1 &&
         attempts < 5
       );
     } else if (generalDictWords.length > 0) {
@@ -414,7 +493,7 @@ export function generateKeybrLessonWords(options: WordGenOptions): string[] {
         validDictWords[Math.floor(Math.random() * validDictWords.length)] ?? "";
     }
 
-    // 2. Fallback to Markov pseudo-word generator if not enough dictionary words
+    // 2. Fallback to Markov pseudo-word generator with bigram & weak key biasing
     if (word === "") {
       const targetFocus = shouldTargetFocus ? focusLower : null;
       word = generateKeybrWord(
@@ -422,6 +501,7 @@ export function generateKeybrLessonWords(options: WordGenOptions): string[] {
         targetFocus,
         minLen,
         maxLen,
+        shouldTargetFocus ? bigrams : [],
       );
     }
 

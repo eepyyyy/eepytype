@@ -8,6 +8,7 @@ import { createEffectOn } from "../../../hooks/effects";
 import { useRefWithUtils } from "../../../hooks/useRefWithUtils";
 import { isAuthenticated } from "../../../states/core";
 import { isKeybrActive, setKeybrMode } from "../../../states/keybr";
+import { isKineticActive, setKineticMode } from "../../../states/kinetic";
 import { showModal } from "../../../states/modals";
 import { getResultVisible, getFocus } from "../../../states/test";
 import { FaObject } from "../../../types/font-awesome";
@@ -135,9 +136,14 @@ function Mode(): JSXElement {
               configMetadata.mode.optionsMetadata?.[modeOption]
                 ?.displayString ?? modeOption
             }
-            active={getConfig.mode === modeOption && !isKeybrActive()}
+            active={
+              getConfig.mode === modeOption &&
+              !isKeybrActive() &&
+              !isKineticActive()
+            }
             onClick={() => {
               setKeybrMode(false);
+              setKineticMode(false);
               setConfig("mode", modeOption);
               restartTestEvent.dispatch();
             }}
@@ -157,9 +163,23 @@ function Mode(): JSXElement {
         active={isKeybrActive()}
         onClick={() => {
           if (!isKeybrActive()) {
+            setKineticMode(false);
             setKeybrMode(true);
           } else {
             showModal("KeybrSettingsModal");
+          }
+        }}
+      />
+      <TCButton
+        fa={{ icon: "fa-brain" }}
+        text="kinetic"
+        active={isKineticActive()}
+        onClick={() => {
+          if (!isKineticActive()) {
+            setKeybrMode(false);
+            setKineticMode(true);
+          } else {
+            showModal("KineticSettingsModal");
           }
         }}
       />

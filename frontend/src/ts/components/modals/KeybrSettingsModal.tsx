@@ -4,6 +4,7 @@ import {
   KeybrFontSize,
   keybrSettings,
   KeybrTextAlign,
+  KeybrTraceMode,
   KeybrWidthMode,
   resetAllKeybrProgress,
   updateKeybrSettings,
@@ -45,6 +46,13 @@ export function KeybrSettingsModal(): JSXElement {
     { id: "center", label: "Center Aligned" },
   ];
 
+  const traceOptions: { id: KeybrTraceMode; label: string; desc: string }[] = [
+    { id: "all", label: "All Traces", desc: "Show every transition" },
+    { id: "errors", label: "Errors Only", desc: "Highlight miss transitions" },
+    { id: "focus", label: "Focus Key", desc: "Targeted key paths only" },
+    { id: "off", label: "Disabled", desc: "Hide all transition arcs" },
+  ];
+
   return (
     <AnimatedModal
       id="KeybrSettingsModal"
@@ -53,8 +61,8 @@ export function KeybrSettingsModal(): JSXElement {
     >
       <div class="flex flex-col gap-6 font-mono text-sm text-text">
         <p class="text-xs text-sub">
-          Customize screen layout, width, font sizing, and the phonetic learning
-          algorithm.
+          Customize screen layout, width, keyboard transition traces, and
+          adaptive learning algorithms.
         </p>
 
         {/* Section: Layout & Appearance */}
@@ -112,8 +120,38 @@ export function KeybrSettingsModal(): JSXElement {
             </div>
           </div>
 
-          {/* 2. Font Size & Alignment */}
-          <div class="grid grid-cols-1 gap-4 sm:grid-cols-2">
+          {/* 2. Keyboard Transition Traces */}
+          <div class="flex flex-col gap-2 border-t border-sub-alt/30 pt-3">
+            <div class="flex items-center justify-between">
+              <span class="font-semibold text-text">
+                Keyboard Motion Traces
+              </span>
+              <span class="text-xs font-bold text-main uppercase">
+                {settings().traceMode ?? "all"}
+              </span>
+            </div>
+            <div class="grid grid-cols-2 gap-2 sm:grid-cols-4">
+              <For each={traceOptions}>
+                {(opt) => (
+                  <button
+                    type="button"
+                    onClick={() => updateKeybrSettings({ traceMode: opt.id })}
+                    class={`flex flex-col items-center justify-center rounded-lg border p-2 text-xs transition-all ${
+                      (settings().traceMode ?? "all") === opt.id
+                        ? "border-main bg-main/15 font-bold text-main shadow-xs"
+                        : "border-sub-alt/40 bg-sub-alt/10 text-sub hover:border-sub hover:text-text"
+                    }`}
+                  >
+                    <span>{opt.label}</span>
+                    <span class="text-[10px] opacity-70">{opt.desc}</span>
+                  </button>
+                )}
+              </For>
+            </div>
+          </div>
+
+          {/* 3. Font Size & Alignment */}
+          <div class="grid grid-cols-1 gap-4 border-t border-sub-alt/30 pt-3 sm:grid-cols-2">
             <div class="flex flex-col gap-2">
               <span class="text-xs font-semibold text-text">Text Size</span>
               <div class="grid grid-cols-2 gap-1.5">
@@ -163,7 +201,7 @@ export function KeybrSettingsModal(): JSXElement {
         {/* Section: Phonetic Calibration & Algorithm */}
         <div class="flex flex-col gap-4 rounded-xl border border-sub-alt/60 bg-sub-alt/20 p-4">
           <span class="text-xs font-bold tracking-wider text-main uppercase">
-            Learning Algorithm
+            Adaptive Learning Algorithm
           </span>
 
           {/* Target Speed */}
@@ -199,7 +237,7 @@ export function KeybrSettingsModal(): JSXElement {
               </span>
               <span class="text-xs text-sub">
                 Automatically introduce the next letter when all current keys
-                reach 100% confidence.
+                reach 100% confidence with $\ge 92\%$ accuracy.
               </span>
             </div>
             <input
@@ -277,8 +315,8 @@ export function KeybrSettingsModal(): JSXElement {
                 Reset Calibration Data
               </span>
               <span class="text-xs text-sub">
-                Wipe all character calibration, speeds, and return to initial
-                keys.
+                Wipe all character calibration, transitions, and return to
+                initial keys.
               </span>
             </div>
 

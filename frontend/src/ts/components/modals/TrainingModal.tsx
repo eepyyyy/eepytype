@@ -1,5 +1,7 @@
 import { createMemo, createSignal, For, JSXElement, Show } from "solid-js";
 
+import { setKineticMode } from "../../states/kinetic";
+import { hideModal, showModal } from "../../states/modals";
 import {
   selectTrainingStage,
   TRAINING_CURRICULUM,
@@ -57,7 +59,46 @@ export function TrainingModal(): JSXElement {
           </span>
         </div>
 
-        {/* Unit Selection Tabs */}
+        {/* Predictive Kinetic Chunking Feature Card */}
+        <div class="border-sky-500/30 bg-sky-500/10 flex items-center justify-between gap-4 rounded-xl border p-3.5">
+          <div class="flex items-center gap-3">
+            <div class="bg-sky-500/20 text-sky-400 flex h-10 w-10 shrink-0 items-center justify-center rounded-xl">
+              <Fa icon="fa-brain" />
+            </div>
+            <div class="flex flex-col">
+              <span class="text-sky-400 text-xs font-bold">
+                Predictive Kinetic Chunking (English 10k)
+              </span>
+              <span class="text-[11px] text-sub">
+                Dual-latency tracking (IKL vs IKI), Glicko-2 transition ratings,
+                and multi-queue spaced repetition.
+              </span>
+            </div>
+          </div>
+          <div class="flex items-center gap-2">
+            <button
+              type="button"
+              onClick={() => {
+                hideModal("TrainingModal");
+                showModal("KineticSettingsModal");
+              }}
+              class="rounded-lg border border-sub-alt/60 bg-sub-alt/20 px-3 py-1.5 text-xs font-semibold text-sub hover:text-text"
+            >
+              Settings
+            </button>
+            <button
+              type="button"
+              onClick={() => {
+                hideModal("TrainingModal");
+                setKineticMode(true);
+              }}
+              class="bg-sky-500 text-white flex items-center gap-1.5 rounded-lg px-3.5 py-1.5 text-xs font-bold shadow-sm hover:brightness-110"
+            >
+              <Fa icon="fa-play" class="text-[10px]" />
+              Start Kinetic
+            </button>
+          </div>
+        </div>
         <div class="custom-scroll flex gap-2 overflow-x-auto pb-1.5 sm:grid sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-6">
           <For each={TRAINING_CURRICULUM}>
             {(unit) => {

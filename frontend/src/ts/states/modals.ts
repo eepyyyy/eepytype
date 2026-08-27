@@ -18,6 +18,7 @@ export type ModalId =
   | "PracticeSections"
   | "TrainingModal"
   | "KeybrSettingsModal"
+  | "KineticSettingsModal"
   | "WordFilter"
   | "CustomGenerator"
   | "QuoteSearch"
