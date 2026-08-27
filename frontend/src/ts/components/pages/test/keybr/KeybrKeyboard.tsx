@@ -298,6 +298,12 @@ export function KeybrKeyboard(): JSXElement {
         };
       }
     }
+    if (map[" "] !== undefined && map["space"] === undefined) {
+      map["space"] = map[" "];
+    }
+    if (map["space"] !== undefined && map[" "] === undefined) {
+      map[" "] = map["space"];
+    }
     setKeyCenters(map);
   };
 
@@ -364,8 +370,8 @@ export function KeybrKeyboard(): JSXElement {
       const cx = midX + nx * curvature * sign;
       const cy = midY + ny * curvature * sign - 6;
 
-      const isRecent = idx >= filtered.length - 4;
-      const opacity = isRecent ? (t.error ? 0.85 : 0.65) : 0.35;
+      const isRecent = idx >= filtered.length - 6;
+      const opacity = isRecent ? (t.error ? 0.95 : 0.85) : 0.45;
       const strokeColor = t.error ? "#f43f5e" : "#38bdf8";
 
       arcs.push({
@@ -390,12 +396,28 @@ export function KeybrKeyboard(): JSXElement {
       }}
       class="relative mx-auto flex w-full max-w-4xl flex-col items-center gap-1.5 rounded-2xl border border-sub-alt/40 bg-[#1e2023]/95 p-4 font-mono shadow-2xl backdrop-blur-md select-none"
     >
-      {/* Dynamic Key Motion Flow SVG Overlay */}
+      {/* Dynamic Key Motion Flow SVG Overlay with Moving Dash Animation */}
       <svg
         class="pointer-events-none absolute inset-0 z-20 h-full w-full overflow-visible"
         xmlns="http://www.w3.org/2000/svg"
       >
         <defs>
+          <style>
+            {`
+              @keyframes keybrArcMovingFlow {
+                from {
+                  stroke-dashoffset: 24;
+                }
+                to {
+                  stroke-dashoffset: 0;
+                }
+              }
+              .keybr-flowing-arc {
+                animation: keybrArcMovingFlow 0.9s linear infinite;
+              }
+            `}
+          </style>
+
           <radialGradient id="focusGlow" cx="50%" cy="50%" r="50%">
             <stop
               offset="0%"
@@ -415,24 +437,24 @@ export function KeybrKeyboard(): JSXElement {
           <marker
             id="arrow-cyan"
             viewBox="0 0 10 10"
-            refX="6"
+            refX="7"
             refY="5"
             markerWidth="6"
             markerHeight="6"
             orient="auto-start-reverse"
           >
-            <path d="M 0 1 L 8 5 L 0 9 z" fill="#38bdf8" opacity="0.8"></path>
+            <path d="M 0 1.5 L 8 5 L 0 8.5 z" fill="#38bdf8"></path>
           </marker>
           <marker
             id="arrow-rose"
             viewBox="0 0 10 10"
-            refX="6"
+            refX="7"
             refY="5"
             markerWidth="6"
             markerHeight="6"
             orient="auto-start-reverse"
           >
-            <path d="M 0 1 L 8 5 L 0 9 z" fill="#f43f5e" opacity="0.9"></path>
+            <path d="M 0 1.5 L 8 5 L 0 8.5 z" fill="#f43f5e"></path>
           </marker>
         </defs>
 
@@ -453,7 +475,7 @@ export function KeybrKeyboard(): JSXElement {
           )}
         </Show>
 
-        {/* Dynamic Keystroke Transition Arcs with Arrowheads */}
+        {/* Moving Dynamic Keystroke Transition Arcs with Arrowheads */}
         <For each={renderedArcs()}>
           {(arc) => (
             <path
@@ -461,14 +483,14 @@ export function KeybrKeyboard(): JSXElement {
               fill="none"
               stroke={arc.strokeColor}
               style={{
-                "stroke-width": arc.isRecent ? "2.0" : "1.4",
-                "stroke-dasharray": arc.isError ? "4 2" : "none",
+                "stroke-width": arc.isRecent ? "2.2px" : "1.6px",
+                "stroke-dasharray": "8 4",
                 "marker-end": arc.isError
                   ? "url(#arrow-rose)"
                   : "url(#arrow-cyan)",
               }}
               opacity={arc.opacity}
-              class="transition-all duration-300"
+              class="keybr-flowing-arc transition-opacity duration-300"
             ></path>
           )}
         </For>
@@ -496,11 +518,20 @@ export function KeybrKeyboard(): JSXElement {
                 const hasTopLabel =
                   keyDef.topLabel !== undefined && keyDef.topLabel !== "";
 
+                const isHighlighted = () =>
+                  isFocused() ||
+                  (isIncluded() && (keyStats()?.confidence ?? 0) > 0) ||
+                  (keyDef.id === " " && isIncluded());
+
                 return (
                   <div
                     ref={(el) => {
                       if (el !== undefined && el !== null) {
                         keyElementRefs.set(lowerId, el);
+                        if (lowerId === " " || lowerId === "space") {
+                          keyElementRefs.set(" ", el);
+                          keyElementRefs.set("space", el);
+                        }
                       }
                     }}
                     class={cn(
@@ -513,8 +544,10 @@ export function KeybrKeyboard(): JSXElement {
                         "border-white/5 text-white/30 after:border-white/20 border bg-[#25282c] opacity-40 brightness-65 grayscale after:absolute after:inset-0 after:rotate-45 after:border-t-[1.5px]",
                       keyStats()?.isForced &&
                         "decoration-white font-black underline decoration-2",
+                      isHighlighted() &&
+                        "z-10 shadow-[0_0_10px_rgba(232,121,249,0.4)] ring-2 ring-[#e879f9]",
                       isFocused() &&
-                        "ring-amber-400 z-20 shadow-[0_0_12px_rgba(251,191,36,0.4)] ring-2 ring-offset-1 ring-offset-[#1e2023] brightness-125",
+                        "z-20 shadow-[0_0_12px_rgba(148,163,56,0.5)] ring-2 ring-[#94a338] brightness-115",
                       isDepressed() &&
                         "translate-y-0.5 scale-95 shadow-inner brightness-140",
                     )}
@@ -529,6 +562,19 @@ export function KeybrKeyboard(): JSXElement {
                     <Show when={hasTopLabel}>
                       <span class="absolute top-0.5 left-1 text-[9px] font-normal opacity-75">
                         {keyDef.topLabel}
+                      </span>
+                    </Show>
+
+                    {/* Confidence score badge on top-right matching screenshot */}
+                    <Show
+                      when={
+                        isIncluded() &&
+                        keyStats()?.confidence !== null &&
+                        keyStats()?.confidence !== undefined
+                      }
+                    >
+                      <span class="text-white/90 absolute top-0.5 right-1 font-mono text-[8px] font-extrabold drop-shadow-sm">
+                        {keyStats()?.confidence?.toFixed(2)}
                       </span>
                     </Show>
 

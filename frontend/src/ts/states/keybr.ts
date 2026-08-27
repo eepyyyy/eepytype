@@ -760,12 +760,7 @@ export function handleKeybrInput(event: KeyboardEvent): void {
   const currChar = expected === "·" ? "space" : expected.toLowerCase();
 
   // Push bigram transition for live keyboard SVG arc visualization
-  if (
-    prevChar !== "" &&
-    prevChar !== "space" &&
-    currChar !== "space" &&
-    prevChar !== currChar
-  ) {
+  if (prevChar !== "" && prevChar !== currChar) {
     const newTrans: KeybrTransitionRecord = {
       fromKey: prevChar,
       toKey: currChar,
@@ -773,7 +768,7 @@ export function handleKeybrInput(event: KeyboardEvent): void {
       timeMs: delta,
       id: ++transitionIdCounter,
     };
-    setRecentTransitions((prev) => [...prev.slice(-25), newTrans]);
+    setRecentTransitions((prev) => [...prev.slice(-30), newTrans]);
   }
 
   const statuses = [...keybrCharStatuses()];
