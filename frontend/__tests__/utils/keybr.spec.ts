@@ -6,17 +6,18 @@ import {
   INITIAL_UNLOCKED_COUNT,
 } from "../../src/ts/utils/keybr/phonetic-model";
 import {
+  calculateLearningRate,
   calculateRecentAccuracy,
   computeConfidence,
   computeKeyMasteryScore,
   ExponentialFilter,
-  calculateLearningRate,
   getConfidenceColor,
+  getKeybrIndicatorState,
   getTopWeakBigrams,
   getTopWeakKeys,
+  KeyCalibrationData,
   speedToTime,
   timeToSpeed,
-  KeyCalibrationData,
 } from "../../src/ts/utils/keybr/key-calibration";
 
 describe("Keybr Phonetic Model and Generator", () => {
@@ -270,9 +271,182 @@ describe("Keybr Calibration & Learning Rate Engine", () => {
   });
 
   it("should generate valid RGB colors for confidence levels", () => {
+    const nullColor = getConfidenceColor(null);
     const slowColor = getConfidenceColor(0.0);
     const fastColor = getConfidenceColor(1.0);
-    expect(slowColor).toMatch(/^rgb\(/);
-    expect(fastColor).toMatch(/^rgb\(/);
+    expect(nullColor).toBe("#383b40");
+    expect(slowColor).toBe("rgb(197, 48, 48)");
+    expect(fastColor).toBe("rgb(56, 161, 105)");
+  });
+
+  it("should classify all 6 authentic Keybr indicator states", () => {
+    // 1. Not included
+    expect(getKeybrIndicatorState(undefined, false)).toBe("not_included");
+    expect(
+      getKeybrIndicatorState(
+        {
+          char: "z",
+          samples: [],
+          timeToType: null,
+          bestTimeToType: null,
+          speed: null,
+          bestSpeed: null,
+          confidence: null,
+          bestConfidence: null,
+          accuracy: 1,
+          masteryScore: 0,
+          totalHits: 0,
+          totalMisses: 0,
+          consecutiveMissDrills: 0,
+          isIncluded: false,
+          isFocused: false,
+          isForced: false,
+        },
+        false,
+      ),
+    ).toBe("not_included");
+
+    // 2. Increased frequency (focused key)
+    expect(
+      getKeybrIndicatorState(
+        {
+          char: "e",
+          samples: [],
+          timeToType: null,
+          bestTimeToType: null,
+          speed: null,
+          bestSpeed: null,
+          confidence: null,
+          bestConfidence: null,
+          accuracy: 1,
+          masteryScore: 0,
+          totalHits: 0,
+          totalMisses: 0,
+          consecutiveMissDrills: 0,
+          isIncluded: true,
+          isFocused: true,
+          isForced: false,
+        },
+        true,
+      ),
+    ).toBe("increased_frequency");
+
+    // 3. Manually included
+    expect(
+      getKeybrIndicatorState(
+        {
+          char: "x",
+          samples: [],
+          timeToType: null,
+          bestTimeToType: null,
+          speed: null,
+          bestSpeed: null,
+          confidence: null,
+          bestConfidence: null,
+          accuracy: 1,
+          masteryScore: 0,
+          totalHits: 0,
+          totalMisses: 0,
+          consecutiveMissDrills: 0,
+          isIncluded: true,
+          isFocused: false,
+          isForced: true,
+        },
+        false,
+      ),
+    ).toBe("manually_included");
+
+    // 4. Non-calibrated (included but 0 samples)
+    expect(
+      getKeybrIndicatorState(
+        {
+          char: "n",
+          samples: [],
+          timeToType: null,
+          bestTimeToType: null,
+          speed: null,
+          bestSpeed: null,
+          confidence: null,
+          bestConfidence: null,
+          accuracy: 1,
+          masteryScore: 0,
+          totalHits: 0,
+          totalMisses: 0,
+          consecutiveMissDrills: 0,
+          isIncluded: true,
+          isFocused: false,
+          isForced: false,
+        },
+        false,
+      ),
+    ).toBe("non_calibrated");
+
+    // 5. Lowest confidence (< 0.50)
+    expect(
+      getKeybrIndicatorState(
+        {
+          char: "i",
+          samples: [
+            {
+              index: 0,
+              timeStamp: 1,
+              hitCount: 5,
+              missCount: 5,
+              timeToType: 600,
+              filteredTimeToType: 600,
+            },
+          ],
+          timeToType: 600,
+          bestTimeToType: 600,
+          speed: 20,
+          bestSpeed: 20,
+          confidence: 0.35,
+          bestConfidence: 0.35,
+          accuracy: 0.5,
+          masteryScore: 0.2,
+          totalHits: 5,
+          totalMisses: 5,
+          consecutiveMissDrills: 1,
+          isIncluded: true,
+          isFocused: false,
+          isForced: false,
+        },
+        false,
+      ),
+    ).toBe("lowest_confidence");
+
+    // 6. Calibrated (>= 0.50)
+    expect(
+      getKeybrIndicatorState(
+        {
+          char: "t",
+          samples: [
+            {
+              index: 0,
+              timeStamp: 1,
+              hitCount: 10,
+              missCount: 0,
+              timeToType: 300,
+              filteredTimeToType: 300,
+            },
+          ],
+          timeToType: 300,
+          bestTimeToType: 300,
+          speed: 40,
+          bestSpeed: 40,
+          confidence: 0.95,
+          bestConfidence: 0.95,
+          accuracy: 1.0,
+          masteryScore: 1.0,
+          totalHits: 10,
+          totalMisses: 0,
+          consecutiveMissDrills: 0,
+          isIncluded: true,
+          isFocused: false,
+          isForced: false,
+        },
+        false,
+      ),
+    ).toBe("calibrated");
   });
 });

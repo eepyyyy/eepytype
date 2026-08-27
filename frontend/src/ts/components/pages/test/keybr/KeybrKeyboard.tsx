@@ -516,7 +516,9 @@ export function KeybrKeyboard(): JSXElement {
                       keyDef.id.length === 1 &&
                         keyDef.id !== " " &&
                         !isIncluded() &&
-                        "text-white/30 border-white/5 border bg-[#25282c] opacity-35 brightness-65 grayscale",
+                        "border-white/5 text-white/30 after:border-white/20 border bg-[#25282c] opacity-40 brightness-65 grayscale after:absolute after:inset-0 after:rotate-45 after:border-t-[1.5px]",
+                      keyStats()?.isForced &&
+                        "decoration-white font-black underline decoration-2",
                       isFocused() &&
                         "ring-amber-400 z-20 shadow-[0_0_12px_rgba(251,191,36,0.4)] ring-2 ring-offset-1 ring-offset-[#1e2023] brightness-125",
                       isDepressed() &&

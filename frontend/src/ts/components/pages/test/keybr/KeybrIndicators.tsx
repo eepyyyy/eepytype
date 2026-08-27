@@ -13,6 +13,7 @@ import {
   skipKeybrLesson,
   streaks,
   summaryMetrics,
+  toggleManualKeyInclusion,
   updateKeybrSettings,
 } from "../../../../states/keybr";
 import { showModal } from "../../../../states/modals";
@@ -20,6 +21,7 @@ import { cn } from "../../../../utils/cn";
 import {
   calculateLearningRate,
   getConfidenceColor,
+  getKeybrIndicatorState,
   getTopWeakBigrams,
   KeyCalibrationData,
 } from "../../../../utils/keybr/key-calibration";
@@ -34,6 +36,8 @@ export function KeybrIndicators(): JSXElement {
     x: number;
     y: number;
   } | null>(null);
+  const [showColorCodingLegend, setShowColorCodingLegend] =
+    createSignal<boolean>(false);
 
   const handleMouseEnter = (keyData: KeyCalibrationData, e: MouseEvent) => {
     const target = e.currentTarget as HTMLElement;
@@ -81,73 +85,64 @@ export function KeybrIndicators(): JSXElement {
     <div class="mx-auto flex w-full flex-col gap-3 font-mono text-xs select-none">
       {/* Row 1: Metrics + Action Toolbar */}
       <div class="flex flex-wrap items-center justify-between gap-3 border-b border-sub-alt/30 pb-2.5">
-        <div class="flex items-center gap-3">
-          <span class="text-[11px] font-bold tracking-wider text-sub/80 uppercase">
-            Metrics:
-          </span>
-          <div class="flex flex-wrap items-center gap-4 text-sub sm:gap-6">
-            {/* Speed */}
-            <div class="flex items-center gap-1.5">
-              <span class="text-sub/70">Speed:</span>
-              <span class="font-bold text-text">
-                {summaryMetrics().speed.last}wpm
+        {/* Left Metrics */}
+        <div class="flex flex-wrap items-center gap-4 sm:gap-6">
+          {/* Speed Metric */}
+          <div class="flex items-center gap-1.5">
+            <span class="text-sub/70 uppercase">Speed:</span>
+            <span class="font-bold text-text">
+              {summaryMetrics().speed.last} WPM
+            </span>
+            <Show when={speedDelta() !== 0}>
+              <span
+                class={cn(
+                  "text-[11px] font-semibold",
+                  speedDelta() > 0 ? "text-emerald-400" : "text-rose-400",
+                )}
+              >
+                ({speedDelta() > 0 ? `↑+${speedDelta()}` : `↓${speedDelta()}`})
               </span>
-              <Show when={speedDelta() !== 0}>
-                <span
-                  class={cn(
-                    "text-[11px] font-semibold",
-                    speedDelta() > 0 ? "text-emerald-400" : "text-rose-400",
-                  )}
-                >
-                  (
-                  {speedDelta() > 0
-                    ? `↑+${speedDelta()}wpm`
-                    : `↓${speedDelta()}wpm`}
-                  )
-                </span>
-              </Show>
-            </div>
+            </Show>
+          </div>
 
-            {/* Accuracy */}
-            <div class="flex items-center gap-1.5">
-              <span class="text-sub/70">Accuracy:</span>
-              <span class="font-bold text-text">
-                {Math.round(summaryMetrics().accuracy.last * 100)}%
+          {/* Accuracy Metric */}
+          <div class="flex items-center gap-1.5">
+            <span class="text-sub/70 uppercase">Accuracy:</span>
+            <span class="font-bold text-text">
+              {Math.round(summaryMetrics().accuracy.last * 100)}%
+            </span>
+            <Show when={accDelta() !== 0}>
+              <span
+                class={cn(
+                  "text-[11px] font-semibold",
+                  accDelta() > 0 ? "text-emerald-400" : "text-rose-400",
+                )}
+              >
+                (
+                {accDelta() > 0
+                  ? `↑+${Math.round(accDelta() * 100)}%`
+                  : `↓${Math.round(accDelta() * 100)}%`}
+                )
               </span>
-              <Show when={accDelta() !== 0}>
-                <span
-                  class={cn(
-                    "text-[11px] font-semibold",
-                    accDelta() > 0 ? "text-emerald-400" : "text-rose-400",
-                  )}
-                >
-                  (
-                  {accDelta() > 0
-                    ? `↑+${Math.round(accDelta() * 100)}%`
-                    : `↓${Math.round(accDelta() * 100)}%`}
-                  )
-                </span>
-              </Show>
-            </div>
+            </Show>
+          </div>
 
-            {/* Score */}
-            <div class="flex items-center gap-1.5">
-              <span class="text-sub/70">Score:</span>
-              <span class="font-bold text-text">
-                {summaryMetrics().score.last}
+          {/* Score Metric */}
+          <div class="flex items-center gap-1.5">
+            <span class="text-sub/70 uppercase">Score:</span>
+            <span class="font-bold text-main">
+              {summaryMetrics().score.last}
+            </span>
+            <Show when={scoreDelta() !== 0}>
+              <span
+                class={cn(
+                  "text-[11px] font-semibold",
+                  scoreDelta() > 0 ? "text-emerald-400" : "text-rose-400",
+                )}
+              >
+                ({scoreDelta() > 0 ? `↑+${scoreDelta()}` : `↓${scoreDelta()}`})
               </span>
-              <Show when={scoreDelta() !== 0}>
-                <span
-                  class={cn(
-                    "text-[11px] font-semibold",
-                    scoreDelta() > 0 ? "text-emerald-400" : "text-rose-400",
-                  )}
-                >
-                  ({scoreDelta() > 0 ? `↑+${scoreDelta()}` : `↓${scoreDelta()}`}
-                  )
-                </span>
-              </Show>
-            </div>
+            </Show>
           </div>
         </div>
 
@@ -179,14 +174,17 @@ export function KeybrIndicators(): JSXElement {
             </span>
           </button>
 
-          {/* View Mode Toggle (Normal/Compact/Bare) */}
+          {/* View Mode Toggle */}
           <button
             type="button"
-            title={`View Mode (Current: ${keybrSettings().viewMode})`}
+            title={`Toggle Keyboard View (Current: ${keybrSettings().viewMode})`}
             onClick={cycleViewMode}
-            class="flex h-7 w-7 items-center justify-center rounded-md transition-colors hover:bg-sub-alt/40 hover:text-text"
+            class="flex items-center gap-1 rounded-md px-2 py-1 text-xs font-semibold transition-all hover:bg-sub-alt/40 hover:text-text"
           >
             <Fa icon="fa-keyboard" />
+            <span class="hidden text-[10px] uppercase sm:inline">
+              {keybrSettings().viewMode}
+            </span>
           </button>
 
           <button
@@ -227,11 +225,28 @@ export function KeybrIndicators(): JSXElement {
         </div>
       </div>
 
-      {/* Row 2: All keys confidence visualizer */}
-      <div class="flex flex-wrap items-center gap-2">
-        <span class="w-24 text-left text-[11px] font-bold tracking-wider text-sub/70 uppercase sm:text-right">
-          All keys:
-        </span>
+      {/* Row 2: All keys confidence visualizer with Color Coding Info Trigger */}
+      <div class="relative flex flex-wrap items-center gap-2">
+        <div class="flex items-center gap-1.5">
+          <span class="text-left text-[11px] font-bold tracking-wider text-sub/70 uppercase">
+            All keys:
+          </span>
+          {/* Indicator Color Coding Modal / Popover Toggle */}
+          <button
+            type="button"
+            title="Indicator color coding guide"
+            onClick={() => setShowColorCodingLegend((prev) => !prev)}
+            class={cn(
+              "flex h-4 w-4 items-center justify-center rounded-full text-[9px] font-bold transition-all",
+              showColorCodingLegend()
+                ? "bg-main text-bg"
+                : "bg-sub-alt/40 text-sub hover:bg-sub-alt hover:text-text",
+            )}
+          >
+            ?
+          </button>
+        </div>
+
         <div class="flex flex-wrap items-center gap-1">
           <For each={KEYBR_ENGLISH_ORDER}>
             {(char) => {
@@ -240,9 +255,23 @@ export function KeybrIndicators(): JSXElement {
               const isFocused = () =>
                 char.toLowerCase() === focusedKey().toLowerCase();
               const confidence = () => keyData()?.confidence ?? null;
+              const indicatorState = () =>
+                getKeybrIndicatorState(keyData(), isFocused());
+
+              const bgStyle = () => {
+                const st = indicatorState();
+                if (st === "increased_frequency") return "#c05621";
+                if (st === "non_calibrated") return "#383b40";
+                if (st === "lowest_confidence") return "#c53030";
+                if (st === "calibrated" || st === "manually_included") {
+                  return getConfidenceColor(confidence());
+                }
+                return undefined;
+              };
 
               return (
                 <div
+                  onClick={() => toggleManualKeyInclusion(char)}
                   onMouseEnter={(e) => {
                     const d = keyData();
                     if (isIncluded() && d !== undefined) {
@@ -250,18 +279,24 @@ export function KeybrIndicators(): JSXElement {
                     }
                   }}
                   onMouseLeave={handleMouseLeave}
+                  title={`Key: ${char.toUpperCase()} (${indicatorState().replace("_", " ")}). Click to toggle inclusion.`}
                   class={cn(
                     "relative flex h-5 w-5 cursor-pointer items-center justify-center rounded-xs text-[11px] font-bold transition-all duration-100 select-none",
-                    isIncluded()
-                      ? "text-bg shadow-xs hover:scale-110"
-                      : "bg-sub-alt/25 text-sub/40 after:absolute after:inset-0 after:rotate-45 after:border-t after:border-sub/40",
-                    isFocused() &&
-                      "z-10 ring-2 ring-main ring-offset-1 ring-offset-bg",
+                    indicatorState() === "not_included" &&
+                      "border-white/5 border bg-[#2b2e33]/90 text-sub/40 after:absolute after:inset-0 after:rotate-45 after:border-t-[1.5px] after:border-sub/50",
+                    indicatorState() === "manually_included" &&
+                      "decoration-white text-white font-black underline decoration-2 shadow-xs hover:scale-110",
+                    indicatorState() === "increased_frequency" &&
+                      "text-white ring-amber-400 shadow-amber-500/30 z-20 font-black shadow-md ring-2 ring-offset-1 ring-offset-[#1e2023] hover:scale-110",
+                    indicatorState() === "non_calibrated" &&
+                      "border-white/5 border font-bold text-sub/90 hover:scale-110",
+                    indicatorState() === "lowest_confidence" &&
+                      "text-white font-bold shadow-xs hover:scale-110",
+                    indicatorState() === "calibrated" &&
+                      "text-white font-bold shadow-xs hover:scale-110",
                   )}
                   style={{
-                    "background-color": isIncluded()
-                      ? getConfidenceColor(confidence())
-                      : undefined,
+                    "background-color": bgStyle(),
                   }}
                 >
                   <span class="uppercase">{char}</span>
@@ -270,6 +305,110 @@ export function KeybrIndicators(): JSXElement {
             }}
           </For>
         </div>
+
+        {/* Expandable Indicator Color Coding Legend Drawer Matching User Screenshot */}
+        <Show when={showColorCodingLegend()}>
+          <div class="animate-in fade-in zoom-in-95 absolute top-full left-0 z-50 mt-2 flex w-full max-w-xl flex-col gap-2.5 rounded-xl border border-sub-alt/60 bg-[#1e2023]/98 p-4 shadow-2xl backdrop-blur-md">
+            <div class="flex items-center justify-between border-b border-sub-alt/40 pb-2">
+              <span class="text-center text-sm font-bold text-text sm:text-base">
+                Indicator color coding.
+              </span>
+              <button
+                type="button"
+                onClick={() => setShowColorCodingLegend(false)}
+                class="flex h-5 w-5 items-center justify-center rounded text-sub hover:bg-sub-alt/40 hover:text-text"
+              >
+                ✕
+              </button>
+            </div>
+
+            <ul class="flex flex-col gap-2.5 text-left text-xs leading-relaxed text-sub/90">
+              {/* 1. Non-calibrated key */}
+              <li class="flex items-start gap-2.5">
+                <span class="flex h-5 w-5 shrink-0 items-center justify-center rounded-xs bg-[#383b40] text-xs font-bold text-sub/90 shadow-xs">
+                  ?
+                </span>
+                <span>
+                  <strong class="font-semibold text-text">
+                    A non-calibrated key
+                  </strong>{" "}
+                  with an unknown confidence level. You still have not pressed
+                  this key yet.
+                </span>
+              </li>
+
+              {/* 2. Calibrated key with lowest confidence */}
+              <li class="flex items-start gap-2.5">
+                <span class="text-white flex h-5 w-5 shrink-0 items-center justify-center rounded-xs bg-[#c53030] text-xs font-bold shadow-xs">
+                  ?
+                </span>
+                <span>
+                  <strong class="font-semibold text-text">
+                    A calibrated key with the lowest confidence level.
+                  </strong>{" "}
+                  The more times you press this key, the more accurate this
+                  metric becomes.
+                </span>
+              </li>
+
+              {/* 3. Calibrated key with highest confidence */}
+              <li class="flex items-start gap-2.5">
+                <span class="text-white flex h-5 w-5 shrink-0 items-center justify-center rounded-xs bg-[#38a169] text-xs font-bold shadow-xs">
+                  ?
+                </span>
+                <span>
+                  <strong class="font-semibold text-text">
+                    A calibrated key with the highest confidence level.
+                  </strong>{" "}
+                  The more times you press this key, the more accurate this
+                  metric becomes.
+                </span>
+              </li>
+
+              {/* 4. Increased frequency key */}
+              <li class="flex items-start gap-2.5">
+                <span class="ring-amber-400/80 text-white flex h-5 w-5 shrink-0 items-center justify-center rounded-xs bg-[#c05621] text-xs font-black shadow-xs ring-1">
+                  ?
+                </span>
+                <span>
+                  <strong class="font-semibold text-text">
+                    A key with increased frequency.
+                  </strong>{" "}
+                  It takes you the most time to find this key so the algorithm
+                  chose it to be included in every generated word.
+                </span>
+              </li>
+
+              {/* 5. Manually included key */}
+              <li class="flex items-start gap-2.5">
+                <span class="text-white decoration-white flex h-5 w-5 shrink-0 items-center justify-center rounded-xs bg-[#4a5568] text-xs font-bold underline decoration-2 shadow-xs">
+                  ?
+                </span>
+                <span>
+                  <strong class="font-semibold text-text">
+                    A key which was manually included
+                  </strong>{" "}
+                  in the lessons. Click any key badge to toggle manual
+                  inclusion.
+                </span>
+              </li>
+
+              {/* 6. Not yet included key */}
+              <li class="flex items-start gap-2.5">
+                <span class="border-white/5 relative flex h-5 w-5 shrink-0 items-center justify-center rounded-xs border bg-[#2b2e33] text-xs font-normal text-sub/40 after:absolute after:inset-0 after:rotate-45 after:border-t-[1.5px] after:border-sub/60">
+                  ?
+                </span>
+                <span>
+                  <strong class="font-semibold text-text">
+                    A key which was not yet included
+                  </strong>{" "}
+                  in the lessons. Unlocks sequentially as confidence reaches
+                  95%+.
+                </span>
+              </li>
+            </ul>
+          </div>
+        </Show>
       </div>
 
       {/* Row 3: Current key info + Accuracy + Daily goal */}

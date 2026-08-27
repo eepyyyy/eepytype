@@ -236,29 +236,60 @@ export function getTopWeakKeys(
   });
 }
 
-// Calculate confidence color between red (#cc0000) and green (#60d788)
+// Keybr 6-State Key Indicator Classification
+export type KeybrIndicatorState =
+  | "not_included"
+  | "manually_included"
+  | "increased_frequency"
+  | "non_calibrated"
+  | "lowest_confidence"
+  | "calibrated";
+
+export function getKeybrIndicatorState(
+  keyData: KeyCalibrationData | undefined,
+  isFocused: boolean,
+): KeybrIndicatorState {
+  if (keyData === undefined || !keyData.isIncluded) {
+    return "not_included";
+  }
+  if (isFocused) {
+    return "increased_frequency";
+  }
+  if (keyData.isForced) {
+    return "manually_included";
+  }
+  if (keyData.samples.length === 0 || keyData.confidence === null) {
+    return "non_calibrated";
+  }
+  if (keyData.confidence < 0.5) {
+    return "lowest_confidence";
+  }
+  return "calibrated";
+}
+
+// Calculate confidence color between red (#c53030) and green (#38a169)
 export function getConfidenceColor(confidence: number | null): string {
   if (confidence === null) {
-    return "var(--sub-alt, #2c2e31)";
+    return "#383b40"; // Neutral gray for non-calibrated
   }
 
   const clamped = Math.max(0, Math.min(1, confidence));
-  // 0% -> #cc0000 (hsl 0, 100%, 40%)
-  // 50% -> #e2b714 (hsl 47, 84%, 48%)
-  // 100% -> #60d788 (hsl 140, 58%, 61%)
+  // 0% -> #c53030 (rgb 197, 48, 48)
+  // 50% -> #d69e2e (rgb 214, 158, 46)
+  // 100% -> #38a169 (rgb 56, 161, 105)
   if (clamped < 0.5) {
     const t = clamped / 0.5;
     // Red to Yellow
-    const r = Math.round(204 + (226 - 204) * t);
-    const g = Math.round(0 + (183 - 0) * t);
-    const b = Math.round(0 + (20 - 0) * t);
+    const r = Math.round(197 + (214 - 197) * t);
+    const g = Math.round(48 + (158 - 48) * t);
+    const b = Math.round(48 + (46 - 48) * t);
     return `rgb(${r}, ${g}, ${b})`;
   } else {
     const t = (clamped - 0.5) / 0.5;
     // Yellow to Green
-    const r = Math.round(226 + (96 - 226) * t);
-    const g = Math.round(183 + (215 - 183) * t);
-    const b = Math.round(20 + (136 - 20) * t);
+    const r = Math.round(214 + (56 - 214) * t);
+    const g = Math.round(158 + (161 - 158) * t);
+    const b = Math.round(46 + (105 - 46) * t);
     return `rgb(${r}, ${g}, ${b})`;
   }
 }

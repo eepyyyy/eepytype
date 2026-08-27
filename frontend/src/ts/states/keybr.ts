@@ -448,6 +448,40 @@ export function completeKeybrLesson(
   }
 }
 
+export function toggleManualKeyInclusion(char: string): void {
+  const currentMap = { ...keyCalibrationMap() };
+  const lower = char.toLowerCase();
+  const data = currentMap[lower];
+  if (!data) return;
+
+  if (data.isIncluded) {
+    if (data.isForced) {
+      currentMap[lower] = {
+        ...data,
+        isForced: false,
+        isIncluded: false,
+      };
+    } else {
+      currentMap[lower] = {
+        ...data,
+        isForced: true,
+      };
+    }
+  } else {
+    currentMap[lower] = {
+      ...data,
+      isIncluded: true,
+      isForced: true,
+    };
+  }
+
+  setKeyCalibrationMap(currentMap);
+  saveKeybrState();
+  if (isKeybrActive()) {
+    startKeybrDrill();
+  }
+}
+
 // Generate words and start test
 export function startKeybrDrill(): void {
   const map = keyCalibrationMap();
