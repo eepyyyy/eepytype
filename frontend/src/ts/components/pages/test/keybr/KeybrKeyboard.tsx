@@ -513,8 +513,12 @@ export function KeybrKeyboard(): JSXElement {
                       "relative flex h-9.5 items-center justify-center rounded-sm text-[11px] font-semibold shadow-xs transition-all duration-75",
                       keyDef.colorClass,
                       hasWidth ? "grow" : "w-9.5",
+                      keyDef.id.length === 1 &&
+                        keyDef.id !== " " &&
+                        !isIncluded() &&
+                        "text-white/30 border-white/5 border bg-[#25282c] opacity-35 brightness-65 grayscale",
                       isFocused() &&
-                        "z-10 ring-2 ring-main ring-offset-1 ring-offset-[#1e2023] brightness-110",
+                        "ring-amber-400 z-20 shadow-[0_0_12px_rgba(251,191,36,0.4)] ring-2 ring-offset-1 ring-offset-[#1e2023] brightness-125",
                       isDepressed() &&
                         "translate-y-0.5 scale-95 shadow-inner brightness-140",
                     )}

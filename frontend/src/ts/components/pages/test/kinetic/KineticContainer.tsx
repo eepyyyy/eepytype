@@ -152,7 +152,6 @@ export function KineticContainer(): JSXElement {
                       <span
                         class={cn(
                           "relative rounded-md px-1 py-0.5 transition-all duration-150",
-                          isPastWord() && "opacity-40",
                           isCurrentWord() && "bg-sub-alt/40 shadow-xs",
                           isLookaheadChunk() &&
                             "text-sky-300 font-bold drop-shadow-[0_0_8px_rgba(56,189,248,0.3)]",
@@ -176,11 +175,13 @@ export function KineticContainer(): JSXElement {
                                 }
                                 return "font-bold text-main";
                               }
-                              if (s === "corrected_error") {
-                                return "text-rose-500 font-bold drop-shadow-[0_0_4px_rgba(244,63,94,0.3)]";
+                              if (s === "corrected_error" || s === "error") {
+                                return "text-rose-500 font-black drop-shadow-[0_0_6px_rgba(244,63,94,0.6)]";
                               }
                               if (s === "correct") {
-                                return "text-text";
+                                return isPastWord()
+                                  ? "text-text/70"
+                                  : "text-text";
                               }
                               return "text-sub/50";
                             };

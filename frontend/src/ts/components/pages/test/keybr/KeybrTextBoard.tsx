@@ -4,6 +4,7 @@ import {
   activeLessonText,
   cursorIndex,
   hasError,
+  keybrCharStatuses,
   keybrSettings,
 } from "../../../../states/keybr";
 import { cn } from "../../../../utils/cn";
@@ -15,6 +16,7 @@ type KeybrWordDef = {
 };
 
 export function KeybrTextBoard(): JSXElement {
+  const statuses = () => keybrCharStatuses();
   const wordsList = createMemo(() => {
     const text = activeLessonText();
     const result: KeybrWordDef[] = [];
@@ -87,22 +89,39 @@ export function KeybrTextBoard(): JSXElement {
             <span class="inline-flex items-center py-1 whitespace-nowrap">
               <For each={wordDef.letters}>
                 {(letterDef) => {
-                  const isTyped = () => letterDef.globalIndex < cursorIndex();
                   const isCurrent = () =>
                     letterDef.globalIndex === cursorIndex();
                   const isRemaining = () =>
                     letterDef.globalIndex > cursorIndex();
+                  const charStatus = () =>
+                    statuses()[letterDef.globalIndex] ?? "pending";
+
+                  const charColorClass = () => {
+                    const s = charStatus();
+                    if (isCurrent()) {
+                      if (s === "error" || hasError()) {
+                        return "text-rose-400 bg-rose-500/20 ring-1 ring-rose-500 rounded px-0.5 font-bold after:absolute after:right-0 after:-bottom-1.5 after:left-0 after:h-[3.5px] after:rounded-full after:bg-rose-500";
+                      }
+                      return "animate-pulse font-bold text-text after:absolute after:right-0 after:-bottom-1.5 after:left-0 after:h-[3.5px] after:rounded-full after:bg-main after:shadow-sm after:shadow-main/50";
+                    }
+                    if (s === "corrected_error" || s === "error") {
+                      // PERMANENT BRIGHT RED
+                      return "text-rose-500 font-black drop-shadow-[0_0_6px_rgba(244,63,94,0.6)]";
+                    }
+                    if (s === "correct") {
+                      return "font-medium text-text";
+                    }
+                    if (isRemaining()) {
+                      return "font-normal text-sub/50";
+                    }
+                    return "font-medium text-text";
+                  };
 
                   return (
                     <span
                       class={cn(
                         "relative inline-flex items-center justify-center px-[1px] transition-all duration-75",
-                        isTyped() && "font-medium text-text",
-                        isRemaining() && "font-normal text-sub/50",
-                        isCurrent() &&
-                          (hasError()
-                            ? "text-rose-400 bg-rose-500/20 shadow-rose-500/20 after:bg-rose-500 rounded px-0.5 font-bold shadow-sm after:absolute after:right-0 after:-bottom-1.5 after:left-0 after:h-[3.5px] after:rounded-full"
-                            : "animate-pulse font-bold text-text after:absolute after:right-0 after:-bottom-1.5 after:left-0 after:h-[3.5px] after:rounded-full after:bg-main after:shadow-sm after:shadow-main/50"),
+                        charColorClass(),
                       )}
                     >
                       {letterDef.char}
@@ -111,21 +130,32 @@ export function KeybrTextBoard(): JSXElement {
                 }}
               </For>
               <Show when={wordDef.hasSeparator}>
-                <span
-                  class={cn(
-                    "relative inline-flex items-center justify-center px-1.5 transition-all duration-75 select-none",
-                    wordDef.separatorIndex < cursorIndex() &&
-                      "font-medium text-text/60",
-                    wordDef.separatorIndex > cursorIndex() &&
-                      "font-normal text-sub/30",
-                    wordDef.separatorIndex === cursorIndex() &&
-                      (hasError()
-                        ? "text-rose-400 bg-rose-500/20 after:bg-rose-500 rounded px-1 font-bold after:absolute after:right-0 after:-bottom-1.5 after:left-0 after:h-[3.5px] after:rounded-full"
-                        : "animate-pulse font-bold text-main after:absolute after:right-0 after:-bottom-1.5 after:left-0 after:h-[3.5px] after:rounded-full after:bg-main after:shadow-sm after:shadow-main/50"),
-                  )}
-                >
-                  {separatorChar()}
-                </span>
+                {(function () {
+                  const sepStatus = () =>
+                    statuses()[wordDef.separatorIndex] ?? "pending";
+                  const isCurrent = () =>
+                    wordDef.separatorIndex === cursorIndex();
+
+                  return (
+                    <span
+                      class={cn(
+                        "relative inline-flex items-center justify-center px-1.5 transition-all duration-75 select-none",
+                        sepStatus() === "corrected_error" &&
+                          "text-rose-500 font-bold",
+                        sepStatus() === "correct" && "font-medium text-text/60",
+                        sepStatus() === "pending" &&
+                          wordDef.separatorIndex > cursorIndex() &&
+                          "font-normal text-sub/30",
+                        isCurrent() &&
+                          (hasError()
+                            ? "text-rose-400 bg-rose-500/20 after:bg-rose-500 rounded px-1 font-bold after:absolute after:right-0 after:-bottom-1.5 after:left-0 after:h-[3.5px] after:rounded-full"
+                            : "animate-pulse font-bold text-main after:absolute after:right-0 after:-bottom-1.5 after:left-0 after:h-[3.5px] after:rounded-full after:bg-main after:shadow-sm after:shadow-main/50"),
+                      )}
+                    >
+                      {separatorChar()}
+                    </span>
+                  );
+                })()}
               </Show>
             </span>
           )}

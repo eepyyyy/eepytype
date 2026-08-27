@@ -145,6 +145,9 @@ export const [activeLessonWords, setActiveLessonWords] = createSignal<string[]>(
 export const [activeLessonText, setActiveLessonText] = createSignal<string>("");
 export const [cursorIndex, setCursorIndex] = createSignal<number>(0);
 export const [hasError, setHasError] = createSignal<boolean>(false);
+export const [keybrCharStatuses, setKeybrCharStatuses] = createSignal<
+  ("pending" | "correct" | "error" | "corrected_error")[]
+>([]);
 export const [lessonHits, setLessonHits] = createSignal<Record<string, number>>(
   {},
 );
@@ -476,6 +479,7 @@ export function startKeybrDrill(): void {
   setActiveLessonText(dotJoinedText);
   setCursorIndex(0);
   setHasError(false);
+  setKeybrCharStatuses(new Array(dotJoinedText.length).fill("pending"));
   setLessonHits({});
   setLessonMisses({});
   setRecentTransitions([]);
@@ -596,12 +600,22 @@ export function handleKeybrInput(event: KeyboardEvent): void {
     setRecentTransitions((prev) => [...prev.slice(-25), newTrans]);
   }
 
+  const statuses = [...keybrCharStatuses()];
+
   if (isMatch) {
     const isFirstAttempt = !hasError();
     const hits = { ...lessonHits() };
     const charKey = currChar;
     hits[charKey] = (hits[charKey] ?? 0) + (isFirstAttempt ? 1 : 0);
     setLessonHits(hits);
+
+    // If character had an error, leave it permanently marked as corrected_error (red)
+    if (statuses[cur] === "error" || statuses[cur] === "corrected_error") {
+      statuses[cur] = "corrected_error";
+    } else {
+      statuses[cur] = "correct";
+    }
+    setKeybrCharStatuses(statuses);
 
     if (expected !== "·") {
       recordKeystroke(expected, delta, isFirstAttempt, prevChar);
@@ -634,6 +648,9 @@ export function handleKeybrInput(event: KeyboardEvent): void {
   } else {
     // Error on key press: turn red, wait for correct key without advancing
     setHasError(true);
+    statuses[cur] = "error";
+    setKeybrCharStatuses(statuses);
+
     const misses = { ...lessonMisses() };
     const charKey = currChar;
     misses[charKey] = (misses[charKey] ?? 0) + 1;

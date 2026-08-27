@@ -9,7 +9,6 @@ import {
   isRemediationActive,
   keyCalibrationMap,
   keybrSettings,
-  KeybrTraceMode,
   resetKeybrLesson,
   skipKeybrLesson,
   streaks,
@@ -76,13 +75,6 @@ export function KeybrIndicators(): JSXElement {
     const current = keybrSettings().viewMode;
     const next = modes[(modes.indexOf(current) + 1) % modes.length] ?? "normal";
     updateKeybrSettings({ viewMode: next });
-  };
-
-  const cycleTraceMode = () => {
-    const modes: KeybrTraceMode[] = ["all", "errors", "focus", "off"];
-    const current = keybrSettings().traceMode ?? "all";
-    const next = modes[(modes.indexOf(current) + 1) % modes.length] ?? "all";
-    updateKeybrSettings({ traceMode: next });
   };
 
   return (
@@ -161,19 +153,6 @@ export function KeybrIndicators(): JSXElement {
 
         {/* Top Right Action Toolbar */}
         <div class="flex items-center gap-1 text-sub">
-          {/* Traces Toggle */}
-          <button
-            type="button"
-            title={`Keyboard Traces: ${keybrSettings().traceMode ?? "all"}`}
-            onClick={cycleTraceMode}
-            class="flex items-center gap-1 rounded-md px-2 py-1 text-xs font-semibold transition-all hover:bg-sub-alt/40 hover:text-text"
-          >
-            <Fa icon="fa-project-diagram" />
-            <span class="hidden text-[10px] uppercase sm:inline">
-              Traces: {keybrSettings().traceMode ?? "all"}
-            </span>
-          </button>
-
           {/* Width Mode Toggle */}
           <button
             type="button"
