@@ -436,24 +436,18 @@ export function KeybrKeyboard(): JSXElement {
           </marker>
         </defs>
 
-        {/* Focused Key Halo Glow & Outer Rings */}
+        {/* Focused Key Ring Matching Official Keybr Screenshot */}
         <Show when={focusPos()}>
           {(pos) => (
             <g class="animate-pulse duration-1000">
               <circle
                 cx={pos().x}
                 cy={pos().y}
-                r="30"
-                fill="url(#focusGlow)"
-              ></circle>
-              <circle
-                cx={pos().x}
-                cy={pos().y}
-                r="24"
+                r="16"
                 fill="none"
-                stroke="#38bdf8"
-                style={{ "stroke-width": "1.5", "stroke-dasharray": "3 3" }}
-                opacity="0.8"
+                stroke="#94a338"
+                style={{ "stroke-width": "3.5" }}
+                opacity="0.9"
               ></circle>
             </g>
           )}

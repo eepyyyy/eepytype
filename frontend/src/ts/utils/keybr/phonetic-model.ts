@@ -244,6 +244,7 @@ export type WordGenOptions = {
   withPunctuation?: boolean;
   wordCount?: number;
   errorRemediationQueue?: string[];
+  customWordPool?: readonly string[];
 };
 
 export function generateKeybrWord(
@@ -410,9 +411,14 @@ export function generateKeybrLessonWords(options: WordGenOptions): string[] {
   const isRemediation = options.remediationMode ?? false;
 
   // Filter dictionary for natural English words matching current unlocked letters
-  const validDictWords = KEYBR_DICTIONARY.filter((w) => {
+  const sourceDict =
+    options.customWordPool !== undefined && options.customWordPool.length > 0
+      ? options.customWordPool
+      : KEYBR_DICTIONARY;
+
+  const validDictWords = sourceDict.filter((w) => {
     if (w.length < minLen || w.length > maxLen) return false;
-    for (const char of w) {
+    for (const char of w.toLowerCase()) {
       if (!allowedSet.has(char)) return false;
     }
     return true;

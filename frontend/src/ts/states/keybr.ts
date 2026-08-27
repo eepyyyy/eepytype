@@ -23,6 +23,7 @@ import {
   KeybrSummaryMetrics,
   timeToSpeed,
 } from "../utils/keybr/key-calibration";
+import { getLanguage } from "../utils/json-data";
 
 export type KeybrViewMode = "normal" | "compact" | "bare";
 export type KeybrWidthMode = "full" | "wide" | "normal" | "compact";
@@ -39,8 +40,17 @@ export type KeybrTransitionRecord = {
   id: number;
 };
 
+export type KeybrCorpus =
+  | "phonetic"
+  | "english"
+  | "english_1k"
+  | "english_5k"
+  | "english_10k"
+  | "english_25k";
+
 export type KeybrSettings = {
   targetWpm: number;
+  corpus: KeybrCorpus;
   autoUnlock: boolean;
   withCapitals: boolean;
   withPunctuation: boolean;
@@ -56,6 +66,7 @@ export type KeybrSettings = {
 
 const DEFAULT_SETTINGS: KeybrSettings = {
   targetWpm: 35,
+  corpus: "phonetic",
   autoUnlock: true,
   withCapitals: false,
   withPunctuation: false,
@@ -482,6 +493,44 @@ export function toggleManualKeyInclusion(char: string): void {
   }
 }
 
+const corpusWordCache = new Map<string, string[]>();
+
+export async function preloadKeybrCorpus(
+  corpus: KeybrCorpus,
+): Promise<string[] | undefined> {
+  if (corpus === "phonetic") return undefined;
+  if (corpusWordCache.has(corpus)) return corpusWordCache.get(corpus);
+  try {
+    const langObj = await getLanguage(corpus);
+    if (
+      langObj.words !== undefined &&
+      Array.isArray(langObj.words) &&
+      langObj.words.length > 0
+    ) {
+      corpusWordCache.set(corpus, langObj.words);
+      return langObj.words;
+    }
+  } catch (e) {
+    console.warn("Failed to load Keybr corpus:", corpus, e);
+  }
+  return undefined;
+}
+
+export function changeKeybrCorpus(corpus: KeybrCorpus): void {
+  updateKeybrSettings({ corpus });
+  if (corpus !== "phonetic") {
+    void preloadKeybrCorpus(corpus).then(() => {
+      if (isKeybrActive()) {
+        startKeybrDrill();
+      }
+    });
+  } else {
+    if (isKeybrActive()) {
+      startKeybrDrill();
+    }
+  }
+}
+
 // Generate words and start test
 export function startKeybrDrill(): void {
   const map = keyCalibrationMap();
@@ -495,6 +544,11 @@ export function startKeybrDrill(): void {
   const rankedWeak = getTopWeakKeys(map, unlocked);
   const secondaryChars = rankedWeak.slice(1, 3);
 
+  const customWordPool =
+    settings.corpus !== "phonetic"
+      ? corpusWordCache.get(settings.corpus)
+      : undefined;
+
   const words = generateKeybrLessonWords({
     unlockedChars: unlocked,
     focusedChar: focused,
@@ -506,6 +560,7 @@ export function startKeybrDrill(): void {
     withCapitals: settings.withCapitals,
     withPunctuation: settings.withPunctuation,
     wordCount: 35,
+    customWordPool,
   });
 
   const dotJoinedText = words.join("·");

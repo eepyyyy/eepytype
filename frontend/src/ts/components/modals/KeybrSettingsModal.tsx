@@ -1,6 +1,7 @@
 import { createSignal, For, JSXElement } from "solid-js";
 
 import {
+  changeKeybrCorpus,
   KeybrFontSize,
   keybrSettings,
   KeybrTextAlign,
@@ -201,11 +202,53 @@ export function KeybrSettingsModal(): JSXElement {
         {/* Section: Phonetic Calibration & Algorithm */}
         <div class="flex flex-col gap-4 rounded-xl border border-sub-alt/60 bg-sub-alt/20 p-4">
           <span class="text-xs font-bold tracking-wider text-main uppercase">
-            Adaptive Learning Algorithm
+            Adaptive Learning & Vocabulary
           </span>
 
-          {/* Target Speed */}
+          {/* Vocabulary Corpus */}
           <div class="flex flex-col gap-2">
+            <div class="flex items-center justify-between">
+              <span class="font-bold text-text">Vocabulary Corpus</span>
+              <span class="text-xs font-bold text-main uppercase">
+                {settings().corpus}
+              </span>
+            </div>
+            <p class="text-xs text-sub">
+              Choose between Keybr phonetic pseudo-words or real English
+              dictionary wordlists filtered to your unlocked letters.
+            </p>
+            <div class="grid grid-cols-2 gap-2 sm:grid-cols-3">
+              <For
+                each={
+                  [
+                    { id: "phonetic", label: "Keybr Phonetic" },
+                    { id: "english", label: "English Standard" },
+                    { id: "english_1k", label: "English 1k" },
+                    { id: "english_5k", label: "English 5k" },
+                    { id: "english_10k", label: "English 10k" },
+                    { id: "english_25k", label: "English 25k" },
+                  ] as const
+                }
+              >
+                {(c) => (
+                  <button
+                    type="button"
+                    onClick={() => changeKeybrCorpus(c.id)}
+                    class={`flex items-center justify-center rounded-lg border p-2 text-xs transition-all ${
+                      settings().corpus === c.id
+                        ? "border-main bg-main/15 font-bold text-main shadow-xs"
+                        : "border-sub-alt/40 bg-sub-alt/10 text-sub hover:border-sub hover:text-text"
+                    }`}
+                  >
+                    {c.label}
+                  </button>
+                )}
+              </For>
+            </div>
+          </div>
+
+          {/* Target Speed */}
+          <div class="flex flex-col gap-2 border-t border-sub-alt/30 pt-2">
             <div class="flex items-center justify-between">
               <span class="font-bold text-text">Target Typing Speed</span>
               <span class="font-bold text-main">
