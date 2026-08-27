@@ -66,6 +66,38 @@ export function getDefaultCorpusIndex(): InvertedCorpusIndex {
   return cachedDefaultIndex;
 }
 
+// Ingest and index custom raw text (e.g. JavaScript, Python, Legal, Medical, Literature)
+export function indexCustomCorpus(text: string): InvertedCorpusIndex {
+  // Extract words and identifier tokens
+  const rawTokens = text
+    .toLowerCase()
+    .replace(/[^a-z0-9_]/g, " ")
+    .split(/\s+/)
+    .filter((w) => w.length >= 2 && !/^\d+$/.test(w));
+
+  const uniqueWords: string[] = [];
+  const seen = new Set<string>();
+
+  for (const token of rawTokens) {
+    if (!seen.has(token)) {
+      seen.add(token);
+      uniqueWords.push(token);
+    }
+  }
+
+  if (uniqueWords.length < 10) {
+    // Merge with default dictionary if custom corpus is small
+    for (const defWord of KEYBR_DICTIONARY) {
+      if (!seen.has(defWord)) {
+        seen.add(defWord);
+        uniqueWords.push(defWord);
+      }
+    }
+  }
+
+  return buildInvertedIndex(uniqueWords);
+}
+
 export type WordScoreWeights = {
   targetDensityWeight?: number; // w1, default 4.0
   secondaryStressWeight?: number; // w2, default 2.5

@@ -1,8 +1,11 @@
 import { createSignal, For, JSXElement, Show } from "solid-js";
 
 import {
+  customCorpusText,
   KineticCorpus,
   kineticSettings,
+  KineticTraceMode,
+  setCustomCorpusText,
   setTransitionRatings,
   startKineticDrill,
   transitionRatings,
@@ -15,6 +18,7 @@ import { Button } from "../common/Button";
 
 export function KineticSettingsModal(): JSXElement {
   const [showConfirmReset, setShowConfirmReset] = createSignal(false);
+  const [customInput, setCustomInput] = createSignal(customCorpusText());
 
   const settings = () => kineticSettings();
   const ratings = () => transitionRatings();
@@ -29,9 +33,9 @@ export function KineticSettingsModal(): JSXElement {
     { id: "english_1k", label: "English 1k", desc: "Core 1,000 words" },
     { id: "english_25k", label: "English 25k", desc: "Extended vocabulary" },
     {
-      id: "english",
-      label: "English 200",
-      desc: "Top 200 high-frequency words",
+      id: "custom",
+      label: "Custom Ingestion",
+      desc: "Pasted code or custom text",
     },
   ];
 
@@ -64,6 +68,13 @@ export function KineticSettingsModal(): JSXElement {
       },
     ];
 
+  const traceOptions: { id: KineticTraceMode; label: string }[] = [
+    { id: "all", label: "All Strokes" },
+    { id: "errors", label: "Errors Only" },
+    { id: "focus", label: "Bottlenecks" },
+    { id: "off", label: "Off" },
+  ];
+
   // Top weak transitions
   const weakTransitions = () => {
     return Object.values(ratings())
@@ -91,7 +102,7 @@ export function KineticSettingsModal(): JSXElement {
           multi-queue spaced repetition.
         </p>
 
-        {/* Section: Corpus & Vocabulary */}
+        {/* Section 1: Corpus & Custom Ingestion */}
         <div class="flex flex-col gap-3 rounded-xl border border-sub-alt/60 bg-sub-alt/20 p-4">
           <span class="text-xs font-bold tracking-wider text-main uppercase">
             Word Corpus (Inverted Kinetic Index)
@@ -117,9 +128,156 @@ export function KineticSettingsModal(): JSXElement {
               )}
             </For>
           </div>
+
+          {/* Custom Corpus Textarea */}
+          <Show when={settings().corpus === "custom"}>
+            <div class="mt-2 flex flex-col gap-2 rounded-lg border border-sub-alt/40 bg-bg/60 p-3">
+              <span class="text-xs font-semibold text-text">
+                Paste Custom Code / Prose to Ingest into Kinetic Graph:
+              </span>
+              <textarea
+                value={customInput()}
+                onInput={(e) => setCustomInput(e.currentTarget.value)}
+                placeholder="Paste JavaScript, Python, Legal briefs, Medical terms, or book chapters here..."
+                rows={4}
+                class="w-full rounded-md border border-sub-alt/60 bg-sub-alt/20 p-2 font-mono text-xs text-text placeholder-sub/40 focus:border-main focus:outline-hidden"
+              ></textarea>
+              <div class="flex justify-end">
+                <button
+                  type="button"
+                  onClick={() => {
+                    setCustomCorpusText(customInput());
+                    localStorage.setItem(
+                      "eepytype_kinetic_custom_corpus_v1",
+                      customInput(),
+                    );
+                    void startKineticDrill();
+                  }}
+                  class="rounded-lg bg-main px-3 py-1.5 text-xs font-bold text-bg hover:brightness-110"
+                >
+                  Ingest & Index Custom Graph
+                </button>
+              </div>
+            </div>
+          </Show>
         </div>
 
-        {/* Section: Speed Tier Roadmap */}
+        {/* Section 2: Visual & Motor Skill UX */}
+        <div class="flex flex-col gap-3 rounded-xl border border-sub-alt/60 bg-sub-alt/20 p-4">
+          <span class="text-xs font-bold tracking-wider text-main uppercase">
+            Visual Lookahead & Motor Conditioning
+          </span>
+
+          <div class="grid grid-cols-1 gap-3 sm:grid-cols-2">
+            {/* Dynamic Lookahead Lighting */}
+            <label class="flex cursor-pointer items-center justify-between rounded-lg border border-sub-alt/40 bg-sub-alt/10 p-3">
+              <div class="flex flex-col pr-2">
+                <span class="font-bold text-text">Lookahead Lighting</span>
+                <span class="text-[11px] text-sub">
+                  Illuminates upcoming 2-3 word chunks to train visual
+                  lookahead.
+                </span>
+              </div>
+              <input
+                type="checkbox"
+                checked={settings().lookaheadLighting}
+                onChange={(e) =>
+                  updateKineticSettings({
+                    lookaheadLighting: e.currentTarget.checked,
+                  })
+                }
+                class="h-4 w-4 accent-main"
+              />
+            </label>
+
+            {/* Ghost Pacer */}
+            <label class="flex cursor-pointer items-center justify-between rounded-lg border border-sub-alt/40 bg-sub-alt/10 p-3">
+              <div class="flex flex-col pr-2">
+                <span class="font-bold text-text">Ghost Pacer</span>
+                <span class="text-[11px] text-sub">
+                  Target speed shadow caret (+5 WPM) pulling velocity forward.
+                </span>
+              </div>
+              <input
+                type="checkbox"
+                checked={settings().ghostPacer}
+                onChange={(e) =>
+                  updateKineticSettings({
+                    ghostPacer: e.currentTarget.checked,
+                  })
+                }
+                class="h-4 w-4 accent-main"
+              />
+            </label>
+
+            {/* Cadence Metronome */}
+            <label class="flex cursor-pointer items-center justify-between rounded-lg border border-sub-alt/40 bg-sub-alt/10 p-3">
+              <div class="flex flex-col pr-2">
+                <span class="font-bold text-text">Cadence Metronome</span>
+                <span class="text-[11px] text-sub">
+                  Visual pulse bar synchronizing uniform Inter-Key Intervals
+                  (IKI).
+                </span>
+              </div>
+              <input
+                type="checkbox"
+                checked={settings().metronome}
+                onChange={(e) =>
+                  updateKineticSettings({
+                    metronome: e.currentTarget.checked,
+                  })
+                }
+                class="h-4 w-4 accent-main"
+              />
+            </label>
+
+            {/* Word-Reset Conditioning */}
+            <label class="flex cursor-pointer items-center justify-between rounded-lg border border-sub-alt/40 bg-sub-alt/10 p-3">
+              <div class="flex flex-col pr-2">
+                <span class="font-bold text-text">Word-Reset Conditioning</span>
+                <span class="text-[11px] text-sub">
+                  Flushes whole word on typo to rewire motor programs cleanly.
+                </span>
+              </div>
+              <input
+                type="checkbox"
+                checked={settings().wordResetConditioning}
+                onChange={(e) =>
+                  updateKineticSettings({
+                    wordResetConditioning: e.currentTarget.checked,
+                  })
+                }
+                class="h-4 w-4 accent-main"
+              />
+            </label>
+          </div>
+
+          {/* Trace Mode */}
+          <div class="flex items-center justify-between border-t border-sub-alt/30 pt-3">
+            <span class="text-xs font-bold text-text">
+              Visual Keyboard Traces:
+            </span>
+            <div class="flex gap-1.5">
+              <For each={traceOptions}>
+                {(opt) => (
+                  <button
+                    type="button"
+                    onClick={() => updateKineticSettings({ traceMode: opt.id })}
+                    class={`rounded-md border px-2.5 py-1 text-xs transition-all ${
+                      settings().traceMode === opt.id
+                        ? "border-main bg-main/20 font-bold text-main"
+                        : "border-sub-alt/50 bg-sub-alt/20 text-sub hover:text-text"
+                    }`}
+                  >
+                    {opt.label}
+                  </button>
+                )}
+              </For>
+            </div>
+          </div>
+        </div>
+
+        {/* Section 3: Speed Tier Roadmap */}
         <div class="flex flex-col gap-3 rounded-xl border border-sub-alt/60 bg-sub-alt/20 p-4">
           <span class="text-xs font-bold tracking-wider text-main uppercase">
             Progressive Speed Tier
@@ -147,69 +305,7 @@ export function KineticSettingsModal(): JSXElement {
           </div>
         </div>
 
-        {/* Section: Multi-Queue Ratio & Anti-Tilt */}
-        <div class="flex flex-col gap-4 rounded-xl border border-sub-alt/60 bg-sub-alt/20 p-4">
-          <span class="text-xs font-bold tracking-wider text-main uppercase">
-            Multi-Queue Drill Composition & Anti-Tilt
-          </span>
-
-          <div class="grid grid-cols-1 gap-3 sm:grid-cols-3">
-            {/* Flow Anchor */}
-            <div class="flex flex-col gap-1 rounded-lg border border-sub-alt/40 bg-sub-alt/10 p-3">
-              <span class="text-sky-400 text-xs font-bold">
-                Flow Anchor (60%)
-              </span>
-              <span class="text-[10px] text-sub">
-                High-confidence mastered chunks for motor rhythm.
-              </span>
-            </div>
-
-            {/* Stress Drill */}
-            <div class="flex flex-col gap-1 rounded-lg border border-sub-alt/40 bg-sub-alt/10 p-3">
-              <span class="text-rose-400 text-xs font-bold">
-                Stress Drill (30%)
-              </span>
-              <span class="text-[10px] text-sub">
-                Lowest-rating bottlenecks and high-error transitions.
-              </span>
-            </div>
-
-            {/* Memory Decay */}
-            <div class="flex flex-col gap-1 rounded-lg border border-sub-alt/40 bg-sub-alt/10 p-3">
-              <span class="text-amber-400 text-xs font-bold">
-                Memory Decay (10%)
-              </span>
-              <span class="text-[10px] text-sub">
-                Spaced repetition review of decayed muscle memory.
-              </span>
-            </div>
-          </div>
-
-          {/* Anti-Tilt Protection Toggle */}
-          <div class="flex items-center justify-between border-t border-sub-alt/30 pt-3">
-            <div class="flex flex-col">
-              <span class="font-bold text-text">
-                Dynamic Anti-Tilt Protection
-              </span>
-              <span class="text-xs text-sub">
-                Auto-switch to 80% Flow Anchor when drill accuracy dips below
-                88% to rebuild rhythm and confidence.
-              </span>
-            </div>
-            <input
-              type="checkbox"
-              checked={settings().antiTiltEnabled}
-              onChange={(e) =>
-                updateKineticSettings({
-                  antiTiltEnabled: e.currentTarget.checked,
-                })
-              }
-              class="h-5 w-5 cursor-pointer rounded-md accent-main"
-            />
-          </div>
-        </div>
-
-        {/* Section: Kinetic Skill Rating Inspector */}
+        {/* Section 4: Live Glicko-2 Skills & Reset */}
         <Show when={Object.keys(ratings()).length > 0}>
           <div class="flex flex-col gap-3 rounded-xl border border-sub-alt/60 bg-sub-alt/20 p-4">
             <span class="text-xs font-bold tracking-wider text-main uppercase">
@@ -217,15 +313,14 @@ export function KineticSettingsModal(): JSXElement {
             </span>
 
             <div class="grid grid-cols-1 gap-4 sm:grid-cols-2">
-              {/* Weak Transitions */}
               <div class="flex flex-col gap-1.5">
                 <span class="text-rose-400 text-xs font-semibold">
-                  Top Motor Bottlenecks (Lowest Speed / Errors)
+                  Top Motor Bottlenecks
                 </span>
                 <div class="flex flex-wrap gap-1.5">
                   <For each={weakTransitions()}>
                     {(item) => (
-                      <span class="bg-rose-500/20 text-rose-300 border-rose-500/30 rounded border px-2 py-1 text-xs font-bold">
+                      <span class="border-rose-500/30 bg-rose-500/20 text-rose-300 rounded border px-2 py-1 text-xs font-bold">
                         {item.transition.toUpperCase()} (
                         {transitionSpeedWpm(item.mu)} WPM)
                       </span>
@@ -234,15 +329,14 @@ export function KineticSettingsModal(): JSXElement {
                 </div>
               </div>
 
-              {/* Memory Decay */}
               <div class="flex flex-col gap-1.5">
                 <span class="text-amber-400 text-xs font-semibold">
-                  High Uncertainty (Memory Decay Queue)
+                  High Uncertainty (Memory Decay)
                 </span>
                 <div class="flex flex-wrap gap-1.5">
                   <For each={decayTransitions()}>
                     {(item) => (
-                      <span class="bg-amber-500/20 text-amber-300 border-amber-500/30 rounded border px-2 py-1 text-xs font-bold">
+                      <span class="border-amber-500/30 bg-amber-500/20 text-amber-300 rounded border px-2 py-1 text-xs font-bold">
                         {item.transition.toUpperCase()} (Uncertainty:{" "}
                         {Math.round(item.phi * 100)}%)
                       </span>
@@ -275,7 +369,7 @@ export function KineticSettingsModal(): JSXElement {
               onClick={() => {
                 if (showConfirmReset()) {
                   setTransitionRatings({});
-                  localStorage.removeItem("eepytype_kinetic_state_v1");
+                  localStorage.removeItem("eepytype_kinetic_state_v2");
                   setShowConfirmReset(false);
                   void startKineticDrill();
                 } else {

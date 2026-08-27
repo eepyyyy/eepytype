@@ -14,6 +14,7 @@ import {
 } from "../../src/ts/utils/kinetic/glicko2";
 import {
   buildInvertedIndex,
+  indexCustomCorpus,
   queryInvertedIndex,
   scoreWordCandidate,
 } from "../../src/ts/utils/kinetic/inverted-index";
@@ -21,6 +22,7 @@ import {
   generateMultiQueueDrill,
   partitionTransitions,
 } from "../../src/ts/utils/kinetic/multi-queue";
+import { calculateProjectedMilestones } from "../../src/ts/states/kinetic";
 
 describe("Kinetic Glicko-2 Transition Rating Engine", () => {
   it("should calculate expected IKI and speed WPM from rating mu", () => {
@@ -259,5 +261,44 @@ describe("Multi-Queue Selection Engine", () => {
     expect(drill.length).toBe(10);
     const flowCount = drill.filter((d) => d.queueType === "flow").length;
     expect(flowCount).toBeGreaterThanOrEqual(4);
+  });
+});
+
+describe("Custom Corpus Ingestion & Projection Forecast Engine", () => {
+  it("should index custom source code into inverted n-gram map", () => {
+    const jsSnippet = `
+      function calculateVelocity(distance, duration) {
+        const speed = distance / duration;
+        return speed * 1.5;
+      }
+    `;
+
+    const index = indexCustomCorpus(jsSnippet);
+    expect(index.words.length).toBeGreaterThan(0);
+    expect(index.nGramMap.has("ve")).toBe(true);
+    expect(index.nGramMap.has("sp")).toBe(true);
+    expect(index.nGramMap.has("ti")).toBe(true);
+  });
+
+  it("should calculate projected speed milestones and practice hours", () => {
+    const ratings = {
+      th: {
+        transition: "th",
+        mu: 1.2,
+        phi: 0.2,
+        sigma: 0.05,
+        lastPracticed: Date.now(),
+        sampleCount: 20,
+        totalErrors: 0,
+        meanIkiMs: 170,
+      },
+    };
+
+    const projection = calculateProjectedMilestones(55, ratings);
+    expect(projection.currentTier).toBe("beginner");
+    expect(projection.nextTier).toBe("intermediate");
+    expect(projection.targetWpm).toBe(70);
+    expect(projection.estimatedPracticeHours).toBeGreaterThan(0);
+    expect(projection.estimatedDaysAt15MinDaily).toBeGreaterThan(0);
   });
 });
