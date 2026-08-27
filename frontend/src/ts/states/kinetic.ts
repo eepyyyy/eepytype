@@ -146,6 +146,23 @@ export const [recentMistakesList, setRecentMistakesList] = createSignal<
   MistakeLogEntry[]
 >([]);
 
+export type KeyConfidenceData = {
+  char: string;
+  filteredTimeToType: number; // smoothed EMA interval ms for bigrams ending in this char
+  filteredErrorRate: number; // smoothed EMA error rate (0.0 to 1.0)
+  speedWpm: number;
+  confidence: number; // 0.0 to 1.0 (Keybr Confidence Score)
+  isUnlocked: boolean; // confidence >= 0.95
+  totalHits: number;
+  totalMisses: number;
+  lastIntervalMs: number;
+  lastPrecedingChar: string;
+};
+
+export const [keyConfidences, setKeyConfidences] = createSignal<
+  Record<string, KeyConfidenceData>
+>({});
+
 export type LiveKineticDiagnostics = {
   lastIklMs: number;
   lastIkiMs: number;
@@ -179,6 +196,7 @@ let drillStartTime = 0;
 let drillTotalHits = 0;
 let drillTotalMisses = 0;
 let lastTypedChar = "";
+let lastKeystrokeTimestamp = 0;
 let ghostPacerTimer: ReturnType<typeof setInterval> | null = null;
 let idleTimer: ReturnType<typeof setTimeout> | null = null;
 let pausedAtTimestamp = 0;
@@ -211,6 +229,11 @@ export function loadKineticState(): void {
       if (mistakesVal !== null && typeof mistakesVal === "object") {
         setRepeatedMistakes(mistakesVal as Record<string, number>);
       }
+
+      const confVal = parsed["keyConfidences"];
+      if (confVal !== null && typeof confVal === "object") {
+        setKeyConfidences(confVal as Record<string, KeyConfidenceData>);
+      }
     }
 
     const savedCorpus = localStorage.getItem(CUSTOM_CORPUS_KEY);
@@ -229,6 +252,7 @@ export function saveKineticState(): void {
       settings: kineticSettings(),
       ratings: transitionRatings(),
       repeatedMistakes: repeatedMistakes(),
+      keyConfidences: keyConfidences(),
     };
     localStorage.setItem(STORAGE_KEY, JSON.stringify(state));
     if (customCorpusText() !== "") {
@@ -343,6 +367,73 @@ export function calculateProjectedMilestones(
   };
 }
 
+// Update Keybr-style Per-Key Bigram Confidence Score (0.0 to 1.0)
+export function updateKeyConfidence(
+  targetChar: string,
+  intervalMs: number,
+  isCorrect: boolean,
+  precedingChar = " ",
+  targetWpm: number = kineticSettings().targetWpm,
+): KeyConfidenceData {
+  const k = targetChar.toLowerCase();
+  const current = keyConfidences()[k] ?? {
+    char: k,
+    filteredTimeToType: 320,
+    filteredErrorRate: 0.0,
+    speedWpm: 37,
+    confidence: 0.5,
+    isUnlocked: false,
+    totalHits: 0,
+    totalMisses: 0,
+    lastIntervalMs: intervalMs,
+    lastPrecedingChar: precedingChar,
+  };
+
+  const alpha = 0.15; // Keybr EMA exponential smoothing
+  const clampedTime = Math.max(40, Math.min(1200, intervalMs));
+  const newFilteredTime = Math.round(
+    (1 - alpha) * current.filteredTimeToType + alpha * clampedTime,
+  );
+  const newFilteredErr = Number(
+    (
+      (1 - alpha) * current.filteredErrorRate +
+      alpha * (isCorrect ? 0.0 : 1.0)
+    ).toFixed(3),
+  );
+
+  const targetIki = 12000 / Math.max(20, targetWpm);
+  // Hesitation = Penalty: if interval > targetIki, speedRatio plummets
+  const speedRatio = Math.min(1.0, targetIki / newFilteredTime);
+  // Error penalty: errors steeply drop accuracy factor
+  const accFactor = Math.max(0.0, 1.0 - 2.5 * newFilteredErr);
+
+  const confidence = Number(
+    Math.max(0.0, Math.min(1.0, speedRatio * accFactor)).toFixed(2),
+  );
+  const isUnlocked = confidence >= 0.95;
+  const speedWpm = Math.round(12000 / newFilteredTime);
+
+  const updated: KeyConfidenceData = {
+    char: k,
+    filteredTimeToType: newFilteredTime,
+    filteredErrorRate: newFilteredErr,
+    speedWpm,
+    confidence,
+    isUnlocked,
+    totalHits: current.totalHits + (isCorrect ? 1 : 0),
+    totalMisses: current.totalMisses + (isCorrect ? 0 : 1),
+    lastIntervalMs: Math.round(clampedTime),
+    lastPrecedingChar: precedingChar,
+  };
+
+  setKeyConfidences((prev) => ({
+    ...prev,
+    [k]: updated,
+  }));
+
+  return updated;
+}
+
 // Record a mistake event
 export function recordMistake(
   expected: string,
@@ -366,8 +457,23 @@ export function recordMistake(
   ]);
 }
 
-// Top letters with most mistakes for automated remediation
+// Top letters with lowest confidence or most mistakes for automated remediation
 export function getMistakeRemediationLetters(): string[] {
+  const confMap = keyConfidences();
+  const allKeys = Object.values(confMap).filter(
+    (k) => k.char.length === 1 && k.char !== " " && k.char !== "",
+  );
+
+  // If confidence data exists, prioritize lowest confidence keys (< 0.90)
+  const weakKeys = allKeys
+    .filter((k) => k.confidence < 0.9)
+    .sort((a, b) => a.confidence - b.confidence)
+    .map((k) => k.char);
+
+  if (weakKeys.length > 0) {
+    return weakKeys.slice(0, 5);
+  }
+
   const mistakes = repeatedMistakes();
   return Object.entries(mistakes)
     .filter(([k, count]) => k.length === 1 && count > 0 && k !== " ")
@@ -595,6 +701,7 @@ function initDrillWithWords(
   drillTotalHits = 0;
   drillTotalMisses = 0;
   lastTypedChar = "";
+  lastKeystrokeTimestamp = 0;
   pausedAtTimestamp = 0;
 
   setGhostPacerProgress(0);
@@ -676,6 +783,11 @@ export function handleKineticInput(event: KeyboardEvent): void {
   }
   resetIdleTimer();
 
+  const intervalMs =
+    lastKeystrokeTimestamp > 0 ? Math.round(now - lastKeystrokeTimestamp) : 220;
+  lastKeystrokeTimestamp = now;
+  const precedingChar = lastTypedChar !== "" ? lastTypedChar : " ";
+
   // Emit visual transition vector
   if (lastTypedChar !== "") {
     const trace: KineticTransitionTrace = {
@@ -694,6 +806,9 @@ export function handleKineticInput(event: KeyboardEvent): void {
     drillTotalHits++;
     setStreakCount((prev) => prev + 1);
     void SoundController.playClick();
+
+    // Update rolling Keybr confidence for matched key
+    updateKeyConfidence(expected, intervalMs, true, precedingChar);
 
     // If character was previously failed, leave it marked as "corrected_error" (red)
     if (statuses[cur] === "error" || statuses[cur] === "corrected_error") {
@@ -742,6 +857,9 @@ export function handleKineticInput(event: KeyboardEvent): void {
     setCurrentWordHasError(true);
     setStreakCount(0);
     void SoundController.playError();
+
+    // Update rolling Keybr confidence for failed key (penalty)
+    updateKeyConfidence(expected, intervalMs, false, precedingChar);
 
     recordMistake(expected, inputChar, currentWordLog.word);
 

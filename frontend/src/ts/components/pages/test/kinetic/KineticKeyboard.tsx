@@ -10,6 +10,7 @@ import {
 
 import {
   activeMicroDrillTransition,
+  keyConfidences,
   kineticDepressedKeys,
   kineticDiagnostics,
   kineticRecentTransitions,
@@ -444,6 +445,7 @@ export function KineticKeyboard(): JSXElement {
 
                 const ratingInfo = () => transitionRatings()[lowerId];
                 const hasErrors = () => (ratingInfo()?.totalErrors ?? 0) > 0;
+                const conf = () => keyConfidences()[lowerId];
                 const hasWidth = keyDef.width !== undefined && keyDef.width > 0;
                 const hasTopLabel =
                   keyDef.topLabel !== undefined && keyDef.topLabel !== "";
@@ -459,6 +461,15 @@ export function KineticKeyboard(): JSXElement {
                       "relative flex h-8.5 items-center justify-center rounded-sm text-[10px] font-bold shadow-xs transition-all duration-75",
                       keyDef.colorClass,
                       hasWidth ? "grow" : "w-8.5",
+                      (conf()?.confidence ?? 0.5) >= 0.9 &&
+                        "ring-emerald-500/70 shadow-[0_0_8px_rgba(16,185,129,0.25)] ring-1",
+                      conf() !== undefined &&
+                        (conf()?.confidence ?? 0.5) < 0.65 &&
+                        "ring-rose-500/80 shadow-[0_0_8px_rgba(244,63,94,0.35)] ring-1",
+                      conf() !== undefined &&
+                        (conf()?.confidence ?? 0.5) >= 0.65 &&
+                        (conf()?.confidence ?? 0.5) < 0.9 &&
+                        "ring-amber-500/60 ring-1",
                       isFocused() &&
                         "z-10 ring-2 ring-main ring-offset-1 ring-offset-[#1e2023] brightness-110",
                       isDepressed() &&
@@ -475,6 +486,28 @@ export function KineticKeyboard(): JSXElement {
                     <Show when={hasTopLabel}>
                       <span class="absolute top-0.5 left-1 text-[8px] font-normal opacity-75">
                         {keyDef.topLabel}
+                      </span>
+                    </Show>
+
+                    {/* Keybr Rolling Confidence Badge */}
+                    <Show
+                      when={
+                        keyDef.id.length === 1 &&
+                        keyDef.id !== " " &&
+                        conf() !== undefined
+                      }
+                    >
+                      <span
+                        class={cn(
+                          "absolute top-0.5 right-1 font-mono text-[7px] font-semibold",
+                          (conf()?.confidence ?? 0.5) >= 0.9
+                            ? "text-emerald-400"
+                            : (conf()?.confidence ?? 0.5) < 0.65
+                              ? "text-rose-400"
+                              : "text-amber-400",
+                        )}
+                      >
+                        {(conf()?.confidence ?? 0.5).toFixed(2)}
                       </span>
                     </Show>
 

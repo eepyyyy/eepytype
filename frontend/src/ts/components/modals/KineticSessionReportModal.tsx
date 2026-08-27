@@ -2,11 +2,13 @@ import { For, JSXElement, Show } from "solid-js";
 
 import {
   getMistakeRemediationLetters,
+  keyConfidences,
   kineticSettings,
   repeatedMistakes,
   sessionHistory,
   startNewSession,
 } from "../../states/kinetic";
+import { cn } from "../../utils/cn";
 import { AnimatedModal } from "../common/AnimatedModal";
 import { Button } from "../common/Button";
 import { Fa } from "../common/Fa";
@@ -16,6 +18,7 @@ export function KineticSessionReportModal(): JSXElement {
   const settings = () => kineticSettings();
   const mistakes = () => repeatedMistakes();
   const remediationLetters = () => getMistakeRemediationLetters();
+  const confMap = () => keyConfidences();
 
   const avgWpm = () => {
     const list = history();
@@ -41,6 +44,15 @@ export function KineticSessionReportModal(): JSXElement {
       .sort((a, b) => b[1] - a[1])
       .slice(0, 8);
   };
+
+  const allKeyList = () => {
+    return Object.values(confMap())
+      .filter((k) => k.char.length === 1 && k.char !== " " && k.char !== "")
+      .sort((a, b) => b.confidence - a.confidence);
+  };
+
+  const unlockedKeys = () => allKeyList().filter((k) => k.confidence >= 0.95);
+  const weakKeys = () => allKeyList().filter((k) => k.confidence < 0.9);
 
   return (
     <AnimatedModal
@@ -86,6 +98,76 @@ export function KineticSessionReportModal(): JSXElement {
             </div>
           </div>
         </div>
+
+        {/* Keybr Rolling Confidence Mastery Summary */}
+        <Show when={allKeyList().length > 0}>
+          <div class="flex flex-col gap-3 rounded-xl border border-sub-alt/50 bg-[#1e2023]/90 p-4 shadow-lg">
+            <div class="flex items-center justify-between">
+              <span class="flex items-center gap-2 text-xs font-bold text-text uppercase">
+                <Fa icon="fa-chart-pie" class="text-sky-400" />
+                Keybr Confidence & Mastery Breakdown
+              </span>
+              <span class="text-[10px] text-sub">
+                Target: {settings().targetWpm} WPM
+              </span>
+            </div>
+
+            <div class="grid grid-cols-1 gap-3 sm:grid-cols-2">
+              {/* Unlocked Keys */}
+              <div class="border-emerald-500/30 bg-emerald-500/10 flex flex-col gap-1.5 rounded-lg border p-2.5">
+                <span class="text-emerald-300 text-[10px] font-bold uppercase">
+                  Mastered Keys (Confidence ≥ 0.95)
+                </span>
+                <div class="flex flex-wrap gap-1.5">
+                  <For
+                    each={unlockedKeys()}
+                    fallback={
+                      <span class="text-[10px] text-sub">
+                        Keep practicing fluidly to reach 0.95 mastery.
+                      </span>
+                    }
+                  >
+                    {(k) => (
+                      <span class="border-emerald-500/40 bg-emerald-500/20 text-emerald-300 rounded border px-2 py-0.5 text-xs font-bold">
+                        {k.char.toUpperCase()} ({k.confidence.toFixed(2)})
+                      </span>
+                    )}
+                  </For>
+                </div>
+              </div>
+
+              {/* Weak / Developing Keys */}
+              <div class="border-amber-500/30 bg-amber-500/10 flex flex-col gap-1.5 rounded-lg border p-2.5">
+                <span class="text-amber-300 text-[10px] font-bold uppercase">
+                  Focus Keys (Confidence &lt; 0.90)
+                </span>
+                <div class="flex flex-wrap gap-1.5">
+                  <For
+                    each={weakKeys()}
+                    fallback={
+                      <span class="text-emerald-400 text-[10px]">
+                        All tested keys currently have high confidence!
+                      </span>
+                    }
+                  >
+                    {(k) => (
+                      <span
+                        class={cn(
+                          "rounded border px-2 py-0.5 text-xs font-bold",
+                          k.confidence < 0.65
+                            ? "border-rose-500/40 bg-rose-500/20 text-rose-300"
+                            : "border-amber-500/40 bg-amber-500/20 text-amber-300",
+                        )}
+                      >
+                        {k.char.toUpperCase()} ({k.confidence.toFixed(2)})
+                      </span>
+                    )}
+                  </For>
+                </div>
+              </div>
+            </div>
+          </div>
+        </Show>
 
         {/* Mistake Diagnosis & Prescription */}
         <div class="flex flex-col gap-3 rounded-xl border border-sub-alt/50 bg-[#1e2023]/90 p-4 shadow-lg">

@@ -25,8 +25,11 @@ import {
 import {
   calculateProjectedMilestones,
   getMistakeRemediationLetters,
+  keyConfidences,
   recordMistake,
+  setKeyConfidences,
   setRepeatedMistakes,
+  updateKeyConfidence,
 } from "../../src/ts/states/kinetic";
 
 describe("Kinetic Glicko-2 Transition Rating Engine", () => {
@@ -322,5 +325,48 @@ describe("Automated Mistake Tracking & Remediation Pipeline", () => {
     expect(letters[0]).toBe("r");
     expect(letters[1]).toBe("e");
     expect(letters).toContain("t");
+  });
+});
+
+describe("Keybr Bigram Interval & Confidence Engine", () => {
+  it("should climb confidence score to 1.0 on fluid, accurate strokes", () => {
+    setKeyConfidences({});
+    // Target 60 WPM (target IKI = 200ms)
+    // Stroke 's' repeatedly with fast 140ms intervals (fluid)
+    for (let i = 0; i < 15; i++) {
+      updateKeyConfidence("s", 140, true, "e", 60);
+    }
+
+    const conf = keyConfidences()["s"];
+    expect(conf).toBeDefined();
+    expect(conf?.confidence).toBeGreaterThanOrEqual(0.95);
+    expect(conf?.isUnlocked).toBe(true);
+  });
+
+  it("should penalize confidence on hesitation intervals", () => {
+    setKeyConfidences({});
+    // Target 60 WPM (target IKI = 200ms)
+    // Stroke 'k' with large delay 550ms (hesitation / hunting)
+    for (let i = 0; i < 10; i++) {
+      updateKeyConfidence("k", 550, true, "a", 60);
+    }
+
+    const conf = keyConfidences()["k"];
+    expect(conf).toBeDefined();
+    expect(conf?.confidence).toBeLessThan(0.65);
+    expect(conf?.isUnlocked).toBe(false);
+  });
+
+  it("should heavily penalize confidence on keystroke errors", () => {
+    setKeyConfidences({});
+    // Stroke 'r' with frequent errors
+    for (let i = 0; i < 5; i++) {
+      updateKeyConfidence("r", 250, false, "t", 60);
+    }
+
+    const conf = keyConfidences()["r"];
+    expect(conf).toBeDefined();
+    expect(conf?.confidence).toBeLessThan(0.5);
+    expect(conf?.filteredErrorRate).toBeGreaterThan(0.3);
   });
 });
