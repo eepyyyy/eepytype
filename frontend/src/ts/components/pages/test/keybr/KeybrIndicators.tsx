@@ -262,8 +262,11 @@ export function KeybrIndicators(): JSXElement {
                 const st = indicatorState();
                 if (st === "increased_frequency") return "#c05621";
                 if (st === "non_calibrated") return "#383b40";
-                if (st === "lowest_confidence") return "#c53030";
-                if (st === "calibrated" || st === "manually_included") {
+                if (
+                  st === "calibrated" ||
+                  st === "lowest_confidence" ||
+                  st === "manually_included"
+                ) {
                   return getConfidenceColor(confidence());
                 }
                 return undefined;
@@ -290,9 +293,8 @@ export function KeybrIndicators(): JSXElement {
                       "text-white ring-amber-400 shadow-amber-500/30 z-20 font-black shadow-md ring-2 ring-offset-1 ring-offset-[#1e2023] hover:scale-110",
                     indicatorState() === "non_calibrated" &&
                       "border-white/5 border font-bold text-sub/90 hover:scale-110",
-                    indicatorState() === "lowest_confidence" &&
-                      "text-white font-bold shadow-xs hover:scale-110",
-                    indicatorState() === "calibrated" &&
+                    (indicatorState() === "calibrated" ||
+                      indicatorState() === "lowest_confidence") &&
                       "text-white font-bold shadow-xs hover:scale-110",
                   )}
                   style={{
@@ -418,14 +420,7 @@ export function KeybrIndicators(): JSXElement {
           <span class="text-[11px] font-bold tracking-wider text-sub/70 uppercase">
             Current key:
           </span>
-          <div
-            class="flex h-5 w-5 items-center justify-center rounded-xs text-[11px] font-black text-bg shadow-sm"
-            style={{
-              "background-color": getConfidenceColor(
-                currentKeyData()?.confidence ?? null,
-              ),
-            }}
-          >
+          <div class="text-white flex h-5 w-5 items-center justify-center rounded-xs bg-[#c05621] text-[11px] font-black shadow-sm">
             <span class="uppercase">{focusedKey()}</span>
           </div>
           <span class="font-bold text-text">
