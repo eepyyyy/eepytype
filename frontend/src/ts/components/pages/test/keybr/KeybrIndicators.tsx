@@ -2,6 +2,7 @@ import { createSignal, For, JSXElement, Show } from "solid-js";
 
 import {
   changeKeybrCorpus,
+  computeUserAverageWpm,
   dailyGoal,
   focusedKey,
   isRemediationActive,
@@ -9,6 +10,7 @@ import {
   keybrSettings,
   KeybrCorpus,
   resetKeybrLesson,
+  setKeybrTargetSpeedMode,
   skipKeybrLesson,
   streaks,
   summaryMetrics,
@@ -70,12 +72,13 @@ export function KeybrIndicators(): JSXElement {
     }
   };
 
-  const currentKeyData = () => keyCalibrationMap()[focusedKey().toLowerCase()];
-  const currentLr = () =>
-    calculateLearningRate(currentKeyData()?.samples ?? []);
   const speedDelta = () => summaryMetrics().speed.delta;
   const accDelta = () => summaryMetrics().accuracy.delta;
   const scoreDelta = () => summaryMetrics().score.delta;
+
+  const currentKeyData = () => keyCalibrationMap()[focusedKey().toLowerCase()];
+  const currentLr = () =>
+    calculateLearningRate(currentKeyData()?.samples ?? []);
 
   const currentConfPercent = () => {
     const conf = currentKeyData()?.confidence;
@@ -157,6 +160,69 @@ export function KeybrIndicators(): JSXElement {
 
         {/* Top Right Action Toolbar & Language Dropdown */}
         <div class="flex items-center gap-2 text-sub">
+          {/* Target Speed On-Page Selector */}
+          <div class="flex items-center gap-1 rounded border border-sub-alt/60 bg-[#1e2023] p-0.5 font-mono text-[11px]">
+            <span class="px-1 font-bold text-sub/70">Target:</span>
+            <button
+              type="button"
+              onClick={() => setKeybrTargetSpeedMode("auto")}
+              class={cn(
+                "rounded px-1.5 py-0.5 font-semibold transition-all",
+                keybrSettings().targetSpeedMode === "auto"
+                  ? "border border-main/50 bg-main/20 font-bold text-main shadow-xs"
+                  : "text-sub hover:text-text",
+              )}
+              title="Automatically match target speed to your typing speed so key colors accurately highlight your strong and weak keys"
+            >
+              Auto ({computeUserAverageWpm()}wpm)
+            </button>
+            <button
+              type="button"
+              onClick={() => {
+                if (keybrSettings().targetSpeedMode === "auto") {
+                  setKeybrTargetSpeedMode(
+                    "custom",
+                    keybrSettings().customTargetWpm || 35,
+                  );
+                }
+              }}
+              class={cn(
+                "rounded px-1.5 py-0.5 font-semibold transition-all",
+                keybrSettings().targetSpeedMode === "custom"
+                  ? "border border-main/50 bg-main/20 font-bold text-main shadow-xs"
+                  : "text-sub hover:text-text",
+              )}
+              title="Custom target speed"
+            >
+              Custom
+            </button>
+            <Show when={keybrSettings().targetSpeedMode === "custom"}>
+              <select
+                value={keybrSettings().targetWpm}
+                onChange={(e) =>
+                  setKeybrTargetSpeedMode(
+                    "custom",
+                    Number(e.currentTarget.value),
+                  )
+                }
+                class="ml-0.5 h-5 rounded border border-sub-alt/40 bg-sub-alt/20 px-1 text-[11px] font-bold text-text outline-hidden"
+              >
+                <option value="20">20 wpm</option>
+                <option value="25">25 wpm</option>
+                <option value="30">30 wpm</option>
+                <option value="35">35 wpm</option>
+                <option value="40">40 wpm</option>
+                <option value="50">50 wpm</option>
+                <option value="60">60 wpm</option>
+                <option value="70">70 wpm</option>
+                <option value="80">80 wpm</option>
+                <option value="90">90 wpm</option>
+                <option value="100">100 wpm</option>
+                <option value="120">120 wpm</option>
+              </select>
+            </Show>
+          </div>
+
           {/* Corpus Selector */}
           <select
             value={keybrSettings().corpus}

@@ -1,13 +1,15 @@
-import { createSignal, For, JSXElement } from "solid-js";
+import { createSignal, For, JSXElement, Show } from "solid-js";
 
 import {
   changeKeybrCorpus,
+  computeUserAverageWpm,
   KeybrFontSize,
   keybrSettings,
   KeybrTextAlign,
   KeybrTraceMode,
   KeybrWidthMode,
   resetAllKeybrProgress,
+  setKeybrTargetSpeedMode,
   updateKeybrSettings,
 } from "../../states/keybr";
 import { AnimatedModal } from "../common/AnimatedModal";
@@ -17,11 +19,6 @@ export function KeybrSettingsModal(): JSXElement {
   const [showConfirmReset, setShowConfirmReset] = createSignal(false);
 
   const settings = () => keybrSettings();
-
-  const handleTargetWpmChange = (wpm: number) => {
-    const clamped = Math.max(15, Math.min(150, wpm));
-    updateKeybrSettings({ targetWpm: clamped });
-  };
 
   const handleDailyGoalChange = (minutes: number) => {
     const clamped = Math.max(5, Math.min(180, minutes));
@@ -248,28 +245,102 @@ export function KeybrSettingsModal(): JSXElement {
           </div>
 
           {/* Target Speed */}
-          <div class="flex flex-col gap-2 border-t border-sub-alt/30 pt-2">
+          <div class="flex flex-col gap-3 border-t border-sub-alt/30 pt-2">
             <div class="flex items-center justify-between">
               <span class="font-bold text-text">Target Typing Speed</span>
               <span class="font-bold text-main">
                 {settings().targetWpm} WPM
+                {settings().targetSpeedMode === "auto"
+                  ? " (Auto)"
+                  : " (Custom)"}
               </span>
             </div>
             <p class="text-xs text-sub">
-              The minimum speed required on all active keys to unlock new
-              letters.
+              {settings().targetSpeedMode === "auto"
+                ? "Auto mode dynamically anchors the target speed to your typing speed so key colors accurately highlight your strong and weak letters."
+                : "The fixed minimum speed required on all active keys to reach 100% confidence and unlock new letters."}
             </p>
-            <input
-              type="range"
-              min="15"
-              max="120"
-              step="5"
-              value={settings().targetWpm}
-              onInput={(e) =>
-                handleTargetWpmChange(Number(e.currentTarget.value))
-              }
-              class="w-full accent-main"
-            />
+
+            {/* Auto vs Custom Mode Switcher */}
+            <div class="grid grid-cols-2 gap-2">
+              <button
+                type="button"
+                onClick={() => setKeybrTargetSpeedMode("auto")}
+                class={`flex flex-col items-center justify-center rounded-lg border p-2 text-xs transition-all ${
+                  settings().targetSpeedMode === "auto"
+                    ? "border-main bg-main/15 font-bold text-main shadow-xs"
+                    : "border-sub-alt/40 bg-sub-alt/10 text-sub hover:border-sub hover:text-text"
+                }`}
+              >
+                <span>Auto (Match My Speed)</span>
+                <span class="text-[10px] opacity-70">
+                  {computeUserAverageWpm()} WPM rolling average
+                </span>
+              </button>
+              <button
+                type="button"
+                onClick={() =>
+                  setKeybrTargetSpeedMode(
+                    "custom",
+                    settings().customTargetWpm || 35,
+                  )
+                }
+                class={`flex flex-col items-center justify-center rounded-lg border p-2 text-xs transition-all ${
+                  settings().targetSpeedMode === "custom"
+                    ? "border-main bg-main/15 font-bold text-main shadow-xs"
+                    : "border-sub-alt/40 bg-sub-alt/10 text-sub hover:border-sub hover:text-text"
+                }`}
+              >
+                <span>Custom Target</span>
+                <span class="text-[10px] opacity-70">
+                  Fixed target threshold
+                </span>
+              </button>
+            </div>
+
+            {/* Custom Speed Slider and Presets when in Custom Mode */}
+            <Show when={settings().targetSpeedMode === "custom"}>
+              <div class="flex flex-col gap-2 rounded-lg border border-sub-alt/30 bg-sub-alt/10 p-3">
+                <div class="flex items-center justify-between text-xs">
+                  <span class="font-semibold text-text">Select Target WPM</span>
+                  <span class="font-bold text-main">
+                    {settings().customTargetWpm || settings().targetWpm} WPM
+                  </span>
+                </div>
+                <input
+                  type="range"
+                  min="15"
+                  max="140"
+                  step="5"
+                  value={settings().customTargetWpm || settings().targetWpm}
+                  onInput={(e) =>
+                    setKeybrTargetSpeedMode(
+                      "custom",
+                      Number(e.currentTarget.value),
+                    )
+                  }
+                  class="w-full accent-main"
+                />
+                <div class="flex flex-wrap gap-1.5 pt-1">
+                  <For each={[25, 35, 50, 70, 90, 100, 120]}>
+                    {(spd) => (
+                      <button
+                        type="button"
+                        onClick={() => setKeybrTargetSpeedMode("custom", spd)}
+                        class={`rounded px-2 py-0.5 text-[11px] transition-all ${
+                          (settings().customTargetWpm ||
+                            settings().targetWpm) === spd
+                            ? "bg-main font-bold text-bg shadow-xs"
+                            : "bg-sub-alt/30 text-sub hover:bg-sub-alt/60 hover:text-text"
+                        }`}
+                      >
+                        {spd}
+                      </button>
+                    )}
+                  </For>
+                </div>
+              </div>
+            </Show>
           </div>
 
           {/* Auto-Unlock & Progression */}

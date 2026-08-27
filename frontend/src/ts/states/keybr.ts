@@ -48,8 +48,12 @@ export type KeybrCorpus =
   | "english_10k"
   | "english_25k";
 
+export type KeybrTargetSpeedMode = "auto" | "custom";
+
 export type KeybrSettings = {
+  targetSpeedMode: KeybrTargetSpeedMode;
   targetWpm: number;
+  customTargetWpm: number;
   corpus: KeybrCorpus;
   autoUnlock: boolean;
   withCapitals: boolean;
@@ -65,7 +69,9 @@ export type KeybrSettings = {
 };
 
 const DEFAULT_SETTINGS: KeybrSettings = {
+  targetSpeedMode: "auto",
   targetWpm: 35,
+  customTargetWpm: 35,
   corpus: "phonetic",
   autoUnlock: true,
   withCapitals: false,
@@ -255,6 +261,71 @@ export function saveKeybrState(): void {
   }
 }
 
+// Compute user's average typing speed across calibrated keys
+export function computeUserAverageWpm(): number {
+  const currentMap = keyCalibrationMap();
+  const calibratedKeys = Object.values(currentMap).filter(
+    (k) =>
+      k.isIncluded && k.samples.length > 0 && k.speed !== null && k.speed > 0,
+  );
+  if (calibratedKeys.length === 0) {
+    const lastLesson = summaryMetrics().speed.last;
+    return lastLesson > 0 ? Number(lastLesson.toFixed(1)) : 35;
+  }
+  const avg =
+    calibratedKeys.reduce((acc, k) => acc + (k.speed ?? 0), 0) /
+    calibratedKeys.length;
+  return Math.max(15, Math.min(150, Math.round(avg * 10) / 10));
+}
+
+// Recalculate confidence & mastery scores for all calibrated keys given a new target WPM
+export function recalculateKeyConfidences(targetWpm: number): void {
+  const currentMap = { ...keyCalibrationMap() };
+  let changed = false;
+  for (const char of KEYBR_ENGLISH_ORDER) {
+    const data = currentMap[char];
+    if (data && data.timeToType !== null) {
+      const conf = computeConfidence(data.timeToType, targetWpm);
+      const bestConf = computeConfidence(data.bestTimeToType, targetWpm);
+      const mastery = computeKeyMasteryScore(
+        data.speed,
+        data.accuracy,
+        targetWpm,
+      );
+      currentMap[char] = {
+        ...data,
+        confidence: conf,
+        bestConfidence: bestConf,
+        masteryScore: mastery,
+      };
+      changed = true;
+    }
+  }
+  if (changed) {
+    setKeyCalibrationMap(currentMap);
+  }
+}
+
+// Toggle or update target speed mode between Auto (matching user WPM) and Custom
+export function setKeybrTargetSpeedMode(
+  mode: KeybrTargetSpeedMode,
+  customWpm?: number,
+): void {
+  const settings = keybrSettings();
+  const customTargetWpm =
+    customWpm !== undefined && customWpm > 0
+      ? customWpm
+      : settings.customTargetWpm || 35;
+  const targetWpm = mode === "auto" ? computeUserAverageWpm() : customTargetWpm;
+
+  updateKeybrSettings({
+    targetSpeedMode: mode,
+    targetWpm,
+    customTargetWpm,
+  });
+  recalculateKeyConfidences(targetWpm);
+}
+
 // Update calibration on letter typed
 export function recordKeystroke(
   char: string,
@@ -279,7 +350,12 @@ export function recordKeystroke(
     filteredTimeToType: filteredTime,
   };
 
-  const targetWpm = keybrSettings().targetWpm;
+  const settings = keybrSettings();
+  let targetWpm = settings.targetWpm;
+  if (settings.targetSpeedMode === "auto") {
+    targetWpm = computeUserAverageWpm();
+  }
+
   const speed = timeToSpeed(filteredTime);
   const bestTimeToType =
     keyData.bestTimeToType !== null
@@ -356,27 +432,38 @@ export function completeKeybrLesson(
   });
   setStreaks(currentStreaks);
 
-  // Update summary metrics
+  // Update summary metrics with floating point precision
   const prevMetrics = summaryMetrics();
   const score = Math.round(
     lessonSpeedWpm * lessonAccuracy * (1 + lessonSpeedWpm / 100),
   );
   const speedDelta =
-    prevMetrics.speed.last > 0 ? lessonSpeedWpm - prevMetrics.speed.last : 0;
+    prevMetrics.speed.last > 0
+      ? Number((lessonSpeedWpm - prevMetrics.speed.last).toFixed(1))
+      : 0;
   const accDelta =
     prevMetrics.accuracy.last > 0
-      ? Number((lessonAccuracy - prevMetrics.accuracy.last).toFixed(2))
+      ? Number((lessonAccuracy - prevMetrics.accuracy.last).toFixed(4))
       : 0;
   const scoreDelta =
     prevMetrics.score.last > 0 ? score - prevMetrics.score.last : 0;
 
   setSummaryMetrics({
-    speed: { last: Math.round(lessonSpeedWpm), delta: Math.round(speedDelta) },
-    accuracy: { last: Number(lessonAccuracy.toFixed(2)), delta: accDelta },
+    speed: {
+      last: Number(lessonSpeedWpm.toFixed(1)),
+      delta: speedDelta,
+    },
+    accuracy: { last: Number(lessonAccuracy.toFixed(4)), delta: accDelta },
     score: { last: score, delta: scoreDelta },
   });
 
   const settings = keybrSettings();
+  if (settings.targetSpeedMode === "auto") {
+    const updatedTargetWpm = computeUserAverageWpm();
+    updateKeybrSettings({ targetWpm: updatedTargetWpm });
+    recalculateKeyConfidences(updatedTargetWpm);
+  }
+
   const currentMap = { ...keyCalibrationMap() };
   const unlockedLetters = KEYBR_ENGLISH_ORDER.filter(
     (k) => currentMap[k]?.isIncluded,
