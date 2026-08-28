@@ -1,4 +1,5 @@
 import {
+  createEffect,
   createSignal,
   For,
   JSXElement,
@@ -21,14 +22,12 @@ type KeyDef = {
   id: string;
   topLabel?: string;
   label: string;
-  width?: number; // relative width, default 1
+  width?: number;
   colorClass: string;
   hasBump?: boolean;
 };
 
-// Exact color palette matching Keybr's finger zones & keyboard layout
 const KEY_ROWS: KeyDef[][] = [
-  // Row 1
   [
     {
       id: "`",
@@ -58,43 +57,43 @@ const KEY_ROWS: KeyDef[][] = [
       id: "4",
       topLabel: "$",
       label: "4",
-      colorClass: "bg-[#457b77] text-white/90",
+      colorClass: "bg-[#be4e46] text-white/90",
     },
     {
       id: "5",
       topLabel: "%",
       label: "5",
-      colorClass: "bg-[#457b77] text-white/90",
+      colorClass: "bg-[#be4e46] text-white/90",
     },
     {
       id: "6",
       topLabel: "^",
       label: "6",
-      colorClass: "bg-[#555d78] text-white/90",
+      colorClass: "bg-[#914782] text-white/90",
     },
     {
       id: "7",
       topLabel: "&",
       label: "7",
-      colorClass: "bg-[#555d78] text-white/90",
+      colorClass: "bg-[#914782] text-white/90",
     },
     {
       id: "8",
       topLabel: "*",
       label: "8",
-      colorClass: "bg-[#cf8e3c] text-white/90",
+      colorClass: "bg-[#45789f] text-white/90",
     },
     {
       id: "9",
       topLabel: "(",
       label: "9",
-      colorClass: "bg-[#9db852] text-white/90",
+      colorClass: "bg-[#488e7d] text-white/90",
     },
     {
       id: "0",
       topLabel: ")",
       label: "0",
-      colorClass: "bg-[#9db852] text-white/90",
+      colorClass: "bg-[#5b8764] text-white/90",
     },
     {
       id: "-",
@@ -109,29 +108,28 @@ const KEY_ROWS: KeyDef[][] = [
       colorClass: "bg-[#5b8764] text-white/90",
     },
     {
-      id: "Backspace",
-      label: "Backspace",
+      id: "backspace",
+      label: "⌫",
       width: 1.6,
-      colorClass: "bg-[#5b8764] text-white/90 text-[10px]",
+      colorClass: "bg-[#4e555b] text-white/80",
     },
   ],
-  // Row 2
   [
     {
-      id: "Tab",
-      label: "Tab",
+      id: "tab",
+      label: "tab",
       width: 1.4,
-      colorClass: "bg-[#5b8764] text-white/90 text-[10px]",
+      colorClass: "bg-[#4e555b] text-white/80",
     },
     { id: "q", label: "Q", colorClass: "bg-[#5b8764] text-white/90" },
     { id: "w", label: "W", colorClass: "bg-[#bfa143] text-white/90" },
     { id: "e", label: "E", colorClass: "bg-[#cf8e3c] text-white/90" },
-    { id: "r", label: "R", colorClass: "bg-[#457b77] text-white/90" },
-    { id: "t", label: "T", colorClass: "bg-[#457b77] text-white/90" },
-    { id: "y", label: "Y", colorClass: "bg-[#555d78] text-white/90" },
-    { id: "u", label: "U", colorClass: "bg-[#555d78] text-white/90" },
-    { id: "i", label: "I", colorClass: "bg-[#cf8e3c] text-white/90" },
-    { id: "o", label: "O", colorClass: "bg-[#9db852] text-white/90" },
+    { id: "r", label: "R", colorClass: "bg-[#be4e46] text-white/90" },
+    { id: "t", label: "T", colorClass: "bg-[#be4e46] text-white/90" },
+    { id: "y", label: "Y", colorClass: "bg-[#914782] text-white/90" },
+    { id: "u", label: "U", colorClass: "bg-[#914782] text-white/90" },
+    { id: "i", label: "I", colorClass: "bg-[#45789f] text-white/90" },
+    { id: "o", label: "O", colorClass: "bg-[#488e7d] text-white/90" },
     { id: "p", label: "P", colorClass: "bg-[#5b8764] text-white/90" },
     {
       id: "[",
@@ -150,16 +148,15 @@ const KEY_ROWS: KeyDef[][] = [
       topLabel: "|",
       label: "\\",
       width: 1.1,
-      colorClass: "bg-[#5b8764] text-white/90",
+      colorClass: "bg-[#4e555b] text-white/80",
     },
   ],
-  // Row 3
   [
     {
-      id: "CapsLock",
-      label: "Caps Lock",
+      id: "capslock",
+      label: "caps",
       width: 1.7,
-      colorClass: "bg-[#5b8764] text-white/90 text-[10px]",
+      colorClass: "bg-[#4e555b] text-white/80",
     },
     { id: "a", label: "A", colorClass: "bg-[#5b8764] text-white/90" },
     { id: "s", label: "S", colorClass: "bg-[#bfa143] text-white/90" },
@@ -168,18 +165,18 @@ const KEY_ROWS: KeyDef[][] = [
       id: "f",
       label: "F",
       hasBump: true,
-      colorClass: "bg-[#457b77] text-white/90",
+      colorClass: "bg-[#be4e46] text-white/90",
     },
-    { id: "g", label: "G", colorClass: "bg-[#457b77] text-white/90" },
-    { id: "h", label: "H", colorClass: "bg-[#555d78] text-white/90" },
+    { id: "g", label: "G", colorClass: "bg-[#be4e46] text-white/90" },
+    { id: "h", label: "H", colorClass: "bg-[#914782] text-white/90" },
     {
       id: "j",
       label: "J",
       hasBump: true,
-      colorClass: "bg-[#555d78] text-white/90",
+      colorClass: "bg-[#914782] text-white/90",
     },
-    { id: "k", label: "K", colorClass: "bg-[#cf8e3c] text-white/90" },
-    { id: "l", label: "L", colorClass: "bg-[#9db852] text-white/90" },
+    { id: "k", label: "K", colorClass: "bg-[#45789f] text-white/90" },
+    { id: "l", label: "L", colorClass: "bg-[#488e7d] text-white/90" },
     {
       id: ";",
       topLabel: ":",
@@ -193,38 +190,37 @@ const KEY_ROWS: KeyDef[][] = [
       colorClass: "bg-[#5b8764] text-white/90",
     },
     {
-      id: "Enter",
-      label: "Enter",
+      id: "enter",
+      label: "enter",
       width: 1.9,
-      colorClass: "bg-[#5b8764] text-white/90 text-[10px]",
+      colorClass: "bg-[#4e555b] text-white/80",
     },
   ],
-  // Row 4
   [
     {
-      id: "ShiftLeft",
-      label: "Shift",
+      id: "shiftleft",
+      label: "shift",
       width: 2.2,
-      colorClass: "bg-[#5b8764] text-white/90 text-[10px]",
+      colorClass: "bg-[#4e555b] text-white/80",
     },
     { id: "z", label: "Z", colorClass: "bg-[#5b8764] text-white/90" },
     { id: "x", label: "X", colorClass: "bg-[#bfa143] text-white/90" },
     { id: "c", label: "C", colorClass: "bg-[#cf8e3c] text-white/90" },
-    { id: "v", label: "V", colorClass: "bg-[#457b77] text-white/90" },
-    { id: "b", label: "B", colorClass: "bg-[#457b77] text-white/90" },
-    { id: "n", label: "N", colorClass: "bg-[#555d78] text-white/90" },
-    { id: "m", label: "M", colorClass: "bg-[#555d78] text-white/90" },
+    { id: "v", label: "V", colorClass: "bg-[#be4e46] text-white/90" },
+    { id: "b", label: "B", colorClass: "bg-[#be4e46] text-white/90" },
+    { id: "n", label: "N", colorClass: "bg-[#914782] text-white/90" },
+    { id: "m", label: "M", colorClass: "bg-[#914782] text-white/90" },
     {
       id: ",",
       topLabel: "<",
       label: ",",
-      colorClass: "bg-[#cf8e3c] text-white/90",
+      colorClass: "bg-[#45789f] text-white/90",
     },
     {
       id: ".",
       topLabel: ">",
       label: ".",
-      colorClass: "bg-[#9db852] text-white/90",
+      colorClass: "bg-[#488e7d] text-white/90",
     },
     {
       id: "/",
@@ -233,106 +229,91 @@ const KEY_ROWS: KeyDef[][] = [
       colorClass: "bg-[#5b8764] text-white/90",
     },
     {
-      id: "ShiftRight",
-      label: "Shift",
+      id: "shiftright",
+      label: "shift",
       width: 2.4,
-      colorClass: "bg-[#5b8764] text-white/90 text-[10px]",
+      colorClass: "bg-[#4e555b] text-white/80",
     },
   ],
-  // Row 5
   [
     {
-      id: "ControlLeft",
-      label: "Ctrl",
+      id: "ctrlleft",
+      label: "ctrl",
       width: 1.3,
-      colorClass: "bg-[#5b8764] text-white/90 text-[10px]",
+      colorClass: "bg-[#4e555b] text-white/80",
     },
     {
-      id: "AltLeft",
-      label: "Alt",
+      id: "altleft",
+      label: "alt",
       width: 1.2,
-      colorClass: "bg-[#5b8764] text-white/90 text-[10px]",
+      colorClass: "bg-[#4e555b] text-white/80",
     },
     {
       id: " ",
-      label: "",
+      label: "space",
       width: 6.2,
-      colorClass: "bg-[#8b4545] text-white/90",
-    }, // spacebar terracotta
-    {
-      id: "AltRight",
-      label: "Alt",
-      width: 1.2,
-      colorClass: "bg-[#5b8764] text-white/90 text-[10px]",
+      colorClass: "bg-[#383d42] text-white/80",
     },
     {
-      id: "ControlRight",
-      label: "Ctrl",
+      id: "altright",
+      label: "alt",
+      width: 1.2,
+      colorClass: "bg-[#4e555b] text-white/80",
+    },
+    {
+      id: "ctrlright",
+      label: "ctrl",
       width: 1.3,
-      colorClass: "bg-[#5b8764] text-white/90 text-[10px]",
+      colorClass: "bg-[#4e555b] text-white/80",
     },
   ],
 ];
 
 export function KeybrKeyboard(): JSXElement {
-  let containerRef: HTMLDivElement | null = null;
+  let keyboardContainerRef: HTMLDivElement | null = null;
   const keyElementRefs = new Map<string, HTMLElement>();
-
   const [keyCenters, setKeyCenters] = createSignal<
     Map<string, { x: number; y: number }>
   >(new Map());
 
-  // Recalculate key center coordinates relative to container
-  const updateKeyPositions = () => {
-    if (containerRef === null) return;
-    const cRect = containerRef.getBoundingClientRect();
-    const map = new Map<string, { x: number; y: number }>();
+  const recalcKeyCenters = () => {
+    if (!keyboardContainerRef) return;
+    const containerRect = keyboardContainerRef.getBoundingClientRect();
+    const newCenters = new Map<string, { x: number; y: number }>();
 
     for (const [keyId, el] of keyElementRefs.entries()) {
-      if (el !== undefined && el !== null) {
-        const kRect = el.getBoundingClientRect();
-        map.set(keyId, {
-          x: kRect.left - cRect.left + kRect.width / 2,
-          y: kRect.top - cRect.top + kRect.height / 2,
-        });
-      }
+      const rect = el.getBoundingClientRect();
+      newCenters.set(keyId, {
+        x: rect.left - containerRect.left + rect.width / 2,
+        y: rect.top - containerRect.top + rect.height / 2,
+      });
     }
-    const spacePos = map.get(" ");
+    const spacePos = newCenters.get(" ");
     if (spacePos !== undefined) {
-      map.set("space", spacePos);
+      newCenters.set("space", spacePos);
     }
-    setKeyCenters(map);
+    setKeyCenters(newCenters);
   };
 
   onMount(() => {
-    updateKeyPositions();
-    setTimeout(updateKeyPositions, 50);
-    setTimeout(updateKeyPositions, 200);
-    window.addEventListener("resize", updateKeyPositions);
-
-    let ro: ResizeObserver | undefined;
-    if (containerRef !== null && typeof ResizeObserver !== "undefined") {
-      ro = new ResizeObserver(() => updateKeyPositions());
-      ro.observe(containerRef);
-    }
-
-    onCleanup(() => {
-      window.removeEventListener("resize", updateKeyPositions);
-      ro?.disconnect();
-    });
+    recalcKeyCenters();
+    setTimeout(recalcKeyCenters, 50);
+    setTimeout(recalcKeyCenters, 200);
+    window.addEventListener("resize", recalcKeyCenters);
+    onCleanup(() => window.removeEventListener("resize", recalcKeyCenters));
   });
 
-  const renderedArcs = () => {
+  createEffect(() => {
+    void recentTransitions().length;
+    setTimeout(recalcKeyCenters, 30);
+  });
+
+  const traceArcs = () => {
     const mode = keybrSettings().traceMode ?? "all";
     if (mode === "off") return [];
 
-    const transitions = recentTransitions();
-    if (transitions.length === 0) return [];
-
-    if (keyCenters().size === 0) {
-      updateKeyPositions();
-    }
     const centers = keyCenters();
+    const transitions = recentTransitions();
     const focus = focusedKey().toLowerCase();
 
     const arcs: {
@@ -341,7 +322,6 @@ export function KeybrKeyboard(): JSXElement {
       color: string;
       opacity: number;
       markerEnd: string;
-      isLatest: boolean;
     }[] = [];
 
     for (let i = 0; i < transitions.length; i++) {
@@ -375,64 +355,40 @@ export function KeybrKeyboard(): JSXElement {
       const isLatest = i >= transitions.length - 2;
       const opacity = isLatest
         ? 0.95
-        : Math.max(0.25, (i + 1) / transitions.length);
+        : Math.max(0.2, (i + 1) / transitions.length);
 
       const color = tr.error ? "#f43f5e" : "#38bdf8";
       const markerEnd = tr.error ? "url(#arrow-rose)" : "url(#arrow-cyan)";
 
       arcs.push({
-        id: `${tr.id}-${tr.fromKey}-${tr.toKey}`,
+        id: `${tr.fromKey}-${tr.toKey}-${i}-${tr.id}`,
         d,
         color,
         opacity,
         markerEnd,
-        isLatest,
       });
     }
 
     return arcs;
   };
 
-  const focusPos = () => keyCenters().get(focusedKey().toLowerCase());
-
   return (
     <div
       ref={(el) => {
-        containerRef = el;
+        keyboardContainerRef = el;
       }}
-      class="relative mx-auto flex w-full max-w-4xl flex-col items-center gap-1 rounded-xl border border-sub-alt/40 bg-[#1e2023]/95 p-3 font-mono shadow-2xl backdrop-blur-md select-none"
+      class="relative mx-auto flex w-full max-w-4xl flex-col gap-1 rounded-xl border border-sub-alt/40 bg-[#1e2023]/95 p-3 shadow-2xl backdrop-blur-md select-none"
     >
-      {/* Dynamic Key Motion Flow SVG Overlay with Kinetic Line-Drawing Animation Drawn Over Keys */}
-      <svg
-        class="pointer-events-none absolute inset-0 z-30 h-full w-full overflow-visible"
-        xmlns="http://www.w3.org/2000/svg"
-      >
+      {/* SVG Transition Trace Layer */}
+      <svg class="pointer-events-none absolute inset-0 z-30 h-full w-full overflow-visible">
         <defs>
-          <style>
-            {`
-              @keyframes keybrDrawLine {
-                from {
-                  stroke-dashoffset: 350;
-                }
-                to {
-                  stroke-dashoffset: 0;
-                }
-              }
-              .keybr-arc-animate {
-                stroke-dasharray: 350;
-                animation: keybrDrawLine 0.2s ease-out forwards;
-              }
-            `}
-          </style>
-
-          {/* Arrowhead markers */}
           <marker
             id="arrow-cyan"
             viewBox="0 0 10 10"
-            refX="6"
+            refX="7"
             refY="5"
-            markerWidth="6"
-            markerHeight="6"
+            markerWidth="5"
+            markerHeight="5"
             orient="auto-start-reverse"
           >
             <path d="M 0 1.5 L 8 5 L 0 8.5 z" fill="#38bdf8"></path>
@@ -440,81 +396,57 @@ export function KeybrKeyboard(): JSXElement {
           <marker
             id="arrow-rose"
             viewBox="0 0 10 10"
-            refX="6"
+            refX="7"
             refY="5"
-            markerWidth="6"
-            markerHeight="6"
+            markerWidth="5"
+            markerHeight="5"
             orient="auto-start-reverse"
           >
             <path d="M 0 1.5 L 8 5 L 0 8.5 z" fill="#f43f5e"></path>
           </marker>
         </defs>
 
-        {/* Focused Key Ring Matching Official Keybr Screenshot */}
-        <Show when={focusPos()}>
-          {(pos) => (
-            <g class="animate-pulse duration-1000">
-              <circle
-                cx={pos().x}
-                cy={pos().y}
-                r="16"
-                fill="none"
-                stroke="#94a338"
-                style={{ "stroke-width": "3.5" }}
-                opacity="0.9"
-              ></circle>
-            </g>
-          )}
-        </Show>
-
-        {/* Moving Dynamic Keystroke Transition Arcs with Arrowheads & Kinetic Line Drawing */}
-        <For each={renderedArcs()}>
+        <For each={traceArcs()}>
           {(arc) => (
             <path
               d={arc.d}
               fill="none"
               stroke={arc.color}
+              opacity={arc.opacity}
               style={{
-                "stroke-width": arc.isLatest ? "2.8" : "2.2",
+                "stroke-width": "2.5",
                 "stroke-linecap": "round",
+                "stroke-dasharray": "4,2",
                 "marker-end": arc.markerEnd,
               }}
-              opacity={arc.opacity}
-              class={cn(
-                "transition-opacity duration-300",
-                arc.isLatest && "keybr-arc-animate",
-              )}
+              class="transition-opacity duration-200"
             ></path>
           )}
         </For>
       </svg>
 
+      {/* Keyboard Grid */}
       <For each={KEY_ROWS}>
         {(row) => (
           <div class="flex w-full gap-1">
             <For each={row}>
               {(keyDef) => {
                 const lowerId = keyDef.id.toLowerCase();
-                const keyStats = () => keyCalibrationMap()[lowerId];
-                const isFocused = () => lowerId === focusedKey().toLowerCase();
                 const isDepressed = () =>
                   depressedKeys().includes(lowerId) ||
                   depressedKeys().includes(keyDef.id) ||
                   (keyDef.id === " " && depressedKeys().includes("space"));
+                const isFocused = () => lowerId === focusedKey().toLowerCase();
 
+                const keyStats = () => keyCalibrationMap()[lowerId];
                 const missCount = () =>
                   lastLessonHeatmap().misses[lowerId] ?? 0;
-                const hitCount = () => keyStats()?.totalHits ?? 0;
-                const totalMisses = () => keyStats()?.totalMisses ?? 0;
-                const isIncluded = () => keyStats()?.isIncluded ?? false;
+                const hasErrors = () =>
+                  (keyStats()?.totalMisses ?? 0) > 0 || missCount() > 0;
+                const conf = () => keyStats()?.confidence;
                 const hasWidth = keyDef.width !== undefined && keyDef.width > 0;
                 const hasTopLabel =
                   keyDef.topLabel !== undefined && keyDef.topLabel !== "";
-
-                const isHighlighted = () =>
-                  isFocused() ||
-                  (isIncluded() && (keyStats()?.confidence ?? 0) > 0) ||
-                  (keyDef.id === " " && isIncluded());
 
                 return (
                   <div
@@ -528,19 +460,24 @@ export function KeybrKeyboard(): JSXElement {
                       }
                     }}
                     class={cn(
-                      "relative box-border flex h-8.5 items-center justify-center rounded-sm border border-transparent text-[10px] font-bold shadow-xs transition-[transform,background-color,border-color,box-shadow,filter] duration-75",
+                      "relative flex h-8.5 items-center justify-center rounded-sm text-[10px] font-bold shadow-xs transition-all duration-75",
                       keyDef.colorClass,
                       hasWidth ? "grow" : "w-8.5",
-                      keyDef.id.length === 1 &&
-                        keyDef.id !== " " &&
-                        !isIncluded() &&
-                        "border-white/10 text-white/30 after:border-white/20 bg-[#25282c] opacity-40 brightness-65 grayscale after:absolute after:inset-0 after:rotate-45 after:border-t-[1.5px]",
-                      keyStats()?.isForced &&
-                        "decoration-white font-black underline decoration-2",
-                      isHighlighted() &&
-                        "z-10 shadow-[0_0_10px_rgba(232,121,249,0.4)] ring-2 ring-[#e879f9]",
+                      conf() !== undefined &&
+                        conf() !== null &&
+                        (conf() ?? 0.5) >= 0.9 &&
+                        "ring-emerald-500/70 shadow-[0_0_8px_rgba(16,185,129,0.25)] ring-1",
+                      conf() !== undefined &&
+                        conf() !== null &&
+                        (conf() ?? 0.5) < 0.65 &&
+                        "ring-rose-500/80 shadow-[0_0_8px_rgba(244,63,94,0.35)] ring-1",
+                      conf() !== undefined &&
+                        conf() !== null &&
+                        (conf() ?? 0.5) >= 0.65 &&
+                        (conf() ?? 0.5) < 0.9 &&
+                        "ring-amber-500/60 ring-1",
                       isFocused() &&
-                        "z-20 shadow-[0_0_12px_rgba(148,163,56,0.5)] ring-2 ring-[#94a338] brightness-115",
+                        "z-10 ring-2 ring-main ring-offset-1 ring-offset-[#1e2023] brightness-110",
                       isDepressed() &&
                         "translate-y-0.5 scale-95 shadow-inner brightness-140",
                     )}
@@ -558,16 +495,26 @@ export function KeybrKeyboard(): JSXElement {
                       </span>
                     </Show>
 
-                    {/* Confidence score badge on top-right matching screenshot */}
+                    {/* Keybr Rolling Confidence Badge */}
                     <Show
                       when={
-                        isIncluded() &&
-                        keyStats()?.confidence !== null &&
-                        keyStats()?.confidence !== undefined
+                        keyDef.id.length === 1 &&
+                        keyDef.id !== " " &&
+                        conf() !== undefined &&
+                        conf() !== null
                       }
                     >
-                      <span class="text-white/90 absolute top-0.5 right-1 font-mono text-[8px] font-extrabold drop-shadow-sm">
-                        {keyStats()?.confidence?.toFixed(2)}
+                      <span
+                        class={cn(
+                          "absolute top-0.5 right-1 font-mono text-[7px] font-semibold",
+                          (conf() ?? 0.5) >= 0.9
+                            ? "text-emerald-400"
+                            : (conf() ?? 0.5) < 0.65
+                              ? "text-rose-400"
+                              : "text-amber-400",
+                        )}
+                      >
+                        {(conf() ?? 0.5).toFixed(2)}
                       </span>
                     </Show>
 
@@ -585,43 +532,29 @@ export function KeybrKeyboard(): JSXElement {
                       <div class="bg-white/70 absolute bottom-0.5 h-0.5 w-2 rounded-full"></div>
                     </Show>
 
-                    {/* Keybr Split-Circle / Wedge Heatmap Indicator (Hits vs Misses) */}
-                    <Show when={isIncluded()}>
-                      <div class="pointer-events-none absolute inset-0 flex items-center justify-center overflow-hidden">
-                        <svg viewBox="0 0 32 32" class="h-5 w-5 opacity-60">
-                          {/* Top Semi-Circle / Arc: Hit density */}
-                          <path
-                            d="M 4 16 A 12 12 0 0 1 28 16 Z"
-                            fill={
-                              hitCount() > 0
-                                ? "rgba(56, 189, 248, 0.45)"
-                                : "rgba(255, 255, 255, 0.15)"
-                            }
-                            stroke="rgba(255, 255, 255, 0.3)"
-                            style={{ "stroke-width": "0.75" }}
-                          ></path>
-
-                          {/* Bottom Semi-Circle / Arc: Error / Miss density */}
-                          <path
-                            d="M 4 16 A 12 12 0 0 0 28 16 Z"
-                            fill={
-                              totalMisses() > 0 || missCount() > 0
-                                ? "rgba(244, 63, 94, 0.65)"
-                                : "rgba(255, 255, 255, 0.1)"
-                            }
-                            stroke="rgba(255, 255, 255, 0.3)"
-                            style={{ "stroke-width": "0.75" }}
-                          ></path>
-                        </svg>
-                      </div>
-                    </Show>
-
-                    {/* Miss error badge */}
-                    <Show when={missCount() > 0}>
-                      <span class="bg-rose-600 text-white absolute -top-1 -right-1 z-20 flex h-4 w-4 items-center justify-center rounded-full text-[9px] font-extrabold shadow-md">
-                        {missCount()}
-                      </span>
-                    </Show>
+                    {/* Split-Circle Hit/Miss Pie Wedge */}
+                    <div class="pointer-events-none absolute inset-0 flex items-center justify-center overflow-hidden opacity-50">
+                      <svg viewBox="0 0 32 32" class="h-5 w-5">
+                        {/* Top Arc: Hit */}
+                        <path
+                          d="M 4 16 A 12 12 0 0 1 28 16 Z"
+                          fill="rgba(56, 189, 248, 0.4)"
+                          stroke="rgba(255, 255, 255, 0.25)"
+                          style={{ "stroke-width": "0.75" }}
+                        ></path>
+                        {/* Bottom Arc: Error */}
+                        <path
+                          d="M 4 16 A 12 12 0 0 0 28 16 Z"
+                          fill={
+                            hasErrors()
+                              ? "rgba(244, 63, 94, 0.65)"
+                              : "rgba(255, 255, 255, 0.1)"
+                          }
+                          stroke="rgba(255, 255, 255, 0.25)"
+                          style={{ "stroke-width": "0.75" }}
+                        ></path>
+                      </svg>
+                    </div>
                   </div>
                 );
               }}
