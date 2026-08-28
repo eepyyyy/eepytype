@@ -757,18 +757,23 @@ export function handleKeybrInput(event: KeyboardEvent): void {
   lastKeystrokeTime = now;
 
   const prevChar = lastTypedChar;
+  const actualInput =
+    inputChar === " " || inputChar === "·" || inputChar === "."
+      ? "space"
+      : inputChar.toLowerCase();
   const currChar = expected === "·" ? "space" : expected.toLowerCase();
 
-  // Push bigram transition for live keyboard SVG arc visualization
-  if (prevChar !== "" && prevChar !== currChar) {
+  // Push transition vector for live keyboard SVG line drawing visualization
+  const targetKey = isMatch ? currChar : actualInput;
+  if (prevChar !== "" && prevChar !== targetKey) {
     const newTrans: KeybrTransitionRecord = {
       fromKey: prevChar,
-      toKey: currChar,
+      toKey: targetKey,
       error: !isMatch,
       timeMs: delta,
       id: ++transitionIdCounter,
     };
-    setRecentTransitions((prev) => [...prev.slice(-12), newTrans]);
+    setRecentTransitions((prev) => [...prev.slice(-16), newTrans]);
   }
 
   const statuses = [...keybrCharStatuses()];

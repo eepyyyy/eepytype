@@ -306,6 +306,8 @@ export function KeybrKeyboard(): JSXElement {
 
   onMount(() => {
     updateKeyPositions();
+    setTimeout(updateKeyPositions, 50);
+    setTimeout(updateKeyPositions, 200);
     window.addEventListener("resize", updateKeyPositions);
 
     let ro: ResizeObserver | undefined;
@@ -325,6 +327,11 @@ export function KeybrKeyboard(): JSXElement {
     if (mode === "off") return [];
 
     const transitions = recentTransitions();
+    if (transitions.length === 0) return [];
+
+    if (keyCenters().size === 0) {
+      updateKeyPositions();
+    }
     const centers = keyCenters();
     const focus = focusedKey().toLowerCase();
 
@@ -368,7 +375,7 @@ export function KeybrKeyboard(): JSXElement {
       const isLatest = i >= transitions.length - 2;
       const opacity = isLatest
         ? 0.95
-        : Math.max(0.2, (i + 1) / transitions.length);
+        : Math.max(0.25, (i + 1) / transitions.length);
 
       const color = tr.error ? "#f43f5e" : "#38bdf8";
       const markerEnd = tr.error ? "url(#arrow-rose)" : "url(#arrow-cyan)";
@@ -395,7 +402,7 @@ export function KeybrKeyboard(): JSXElement {
       }}
       class="relative mx-auto flex w-full max-w-4xl flex-col items-center gap-1 rounded-xl border border-sub-alt/40 bg-[#1e2023]/95 p-3 font-mono shadow-2xl backdrop-blur-md select-none"
     >
-      {/* Dynamic Key Motion Flow SVG Overlay with Kinetic Line-Drawing Animation */}
+      {/* Dynamic Key Motion Flow SVG Overlay with Kinetic Line-Drawing Animation Drawn Over Keys */}
       <svg
         class="pointer-events-none absolute inset-0 z-30 h-full w-full overflow-visible"
         xmlns="http://www.w3.org/2000/svg"
@@ -403,22 +410,17 @@ export function KeybrKeyboard(): JSXElement {
         <defs>
           <style>
             {`
-              @keyframes keybrDrawArc {
-                0% {
-                  stroke-dashoffset: 200;
-                  opacity: 0.2;
+              @keyframes keybrDrawLine {
+                from {
+                  stroke-dashoffset: 350;
                 }
-                60% {
-                  opacity: 1;
-                }
-                100% {
+                to {
                   stroke-dashoffset: 0;
                 }
               }
               .keybr-arc-animate {
-                stroke-dasharray: 200;
-                stroke-dashoffset: 0;
-                animation: keybrDrawArc 0.24s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+                stroke-dasharray: 350;
+                animation: keybrDrawLine 0.2s ease-out forwards;
               }
             `}
           </style>
@@ -427,10 +429,10 @@ export function KeybrKeyboard(): JSXElement {
           <marker
             id="arrow-cyan"
             viewBox="0 0 10 10"
-            refX="7"
+            refX="6"
             refY="5"
-            markerWidth="5"
-            markerHeight="5"
+            markerWidth="6"
+            markerHeight="6"
             orient="auto-start-reverse"
           >
             <path d="M 0 1.5 L 8 5 L 0 8.5 z" fill="#38bdf8"></path>
@@ -438,10 +440,10 @@ export function KeybrKeyboard(): JSXElement {
           <marker
             id="arrow-rose"
             viewBox="0 0 10 10"
-            refX="7"
+            refX="6"
             refY="5"
-            markerWidth="5"
-            markerHeight="5"
+            markerWidth="6"
+            markerHeight="6"
             orient="auto-start-reverse"
           >
             <path d="M 0 1.5 L 8 5 L 0 8.5 z" fill="#f43f5e"></path>
@@ -473,14 +475,13 @@ export function KeybrKeyboard(): JSXElement {
               fill="none"
               stroke={arc.color}
               style={{
-                "stroke-width": arc.isLatest ? "2.5" : "2.0",
+                "stroke-width": arc.isLatest ? "2.8" : "2.2",
                 "stroke-linecap": "round",
-                "stroke-dasharray": "6,3",
                 "marker-end": arc.markerEnd,
               }}
               opacity={arc.opacity}
               class={cn(
-                "transition-opacity duration-200",
+                "transition-opacity duration-300",
                 arc.isLatest && "keybr-arc-animate",
               )}
             ></path>
