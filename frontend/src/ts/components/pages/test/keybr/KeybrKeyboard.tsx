@@ -27,7 +27,7 @@ type KeyDef = {
   hasBump?: boolean;
 };
 
-// Exact color palette matching Keybr's finger zones & layout
+// Exact authentic color palette matching Keybr's finger zones & keyboard layout
 const KEY_ROWS: KeyDef[][] = [
   // Row 1
   [
@@ -59,43 +59,43 @@ const KEY_ROWS: KeyDef[][] = [
       id: "4",
       topLabel: "$",
       label: "4",
-      colorClass: "bg-[#be4e46] text-white/90",
+      colorClass: "bg-[#457b77] text-white/90",
     },
     {
       id: "5",
       topLabel: "%",
       label: "5",
-      colorClass: "bg-[#be4e46] text-white/90",
+      colorClass: "bg-[#457b77] text-white/90",
     },
     {
       id: "6",
       topLabel: "^",
       label: "6",
-      colorClass: "bg-[#914782] text-white/90",
+      colorClass: "bg-[#555d78] text-white/90",
     },
     {
       id: "7",
       topLabel: "&",
       label: "7",
-      colorClass: "bg-[#914782] text-white/90",
+      colorClass: "bg-[#555d78] text-white/90",
     },
     {
       id: "8",
       topLabel: "*",
       label: "8",
-      colorClass: "bg-[#45789f] text-white/90",
+      colorClass: "bg-[#cf8e3c] text-white/90",
     },
     {
       id: "9",
       topLabel: "(",
       label: "9",
-      colorClass: "bg-[#488e7d] text-white/90",
+      colorClass: "bg-[#9db852] text-white/90",
     },
     {
       id: "0",
       topLabel: ")",
       label: "0",
-      colorClass: "bg-[#488e7d] text-white/90",
+      colorClass: "bg-[#9db852] text-white/90",
     },
     {
       id: "-",
@@ -110,29 +110,29 @@ const KEY_ROWS: KeyDef[][] = [
       colorClass: "bg-[#5b8764] text-white/90",
     },
     {
-      id: "Backspace",
+      id: "backspace",
       label: "Backspace",
       width: 2.0,
-      colorClass: "bg-[#4e555b] text-white/80 text-[10px]",
+      colorClass: "bg-[#5b8764] text-white/90 text-[10px]",
     },
   ],
   // Row 2
   [
     {
-      id: "Tab",
-      label: "tab",
+      id: "tab",
+      label: "Tab",
       width: 1.5,
-      colorClass: "bg-[#4e555b] text-white/80 text-[10px]",
+      colorClass: "bg-[#5b8764] text-white/90 text-[10px]",
     },
     { id: "q", label: "Q", colorClass: "bg-[#5b8764] text-white/90" },
     { id: "w", label: "W", colorClass: "bg-[#bfa143] text-white/90" },
     { id: "e", label: "E", colorClass: "bg-[#cf8e3c] text-white/90" },
-    { id: "r", label: "R", colorClass: "bg-[#be4e46] text-white/90" },
-    { id: "t", label: "T", colorClass: "bg-[#be4e46] text-white/90" },
-    { id: "y", label: "Y", colorClass: "bg-[#914782] text-white/90" },
-    { id: "u", label: "U", colorClass: "bg-[#914782] text-white/90" },
-    { id: "i", label: "I", colorClass: "bg-[#45789f] text-white/90" },
-    { id: "o", label: "O", colorClass: "bg-[#488e7d] text-white/90" },
+    { id: "r", label: "R", colorClass: "bg-[#457b77] text-white/90" },
+    { id: "t", label: "T", colorClass: "bg-[#457b77] text-white/90" },
+    { id: "y", label: "Y", colorClass: "bg-[#555d78] text-white/90" },
+    { id: "u", label: "U", colorClass: "bg-[#555d78] text-white/90" },
+    { id: "i", label: "I", colorClass: "bg-[#cf8e3c] text-white/90" },
+    { id: "o", label: "O", colorClass: "bg-[#9db852] text-white/90" },
     { id: "p", label: "P", colorClass: "bg-[#5b8764] text-white/90" },
     {
       id: "[",
@@ -151,16 +151,16 @@ const KEY_ROWS: KeyDef[][] = [
       topLabel: "|",
       label: "\\",
       width: 1.5,
-      colorClass: "bg-[#4e555b] text-white/80",
+      colorClass: "bg-[#5b8764] text-white/90",
     },
   ],
   // Row 3
   [
     {
-      id: "CapsLock",
-      label: "caps",
+      id: "capslock",
+      label: "Caps Lock",
       width: 1.8,
-      colorClass: "bg-[#4e555b] text-white/80 text-[10px]",
+      colorClass: "bg-[#5b8764] text-white/90 text-[10px]",
     },
     { id: "a", label: "A", colorClass: "bg-[#5b8764] text-white/90" },
     { id: "s", label: "S", colorClass: "bg-[#bfa143] text-white/90" },
@@ -169,18 +169,18 @@ const KEY_ROWS: KeyDef[][] = [
       id: "f",
       label: "F",
       hasBump: true,
-      colorClass: "bg-[#be4e46] text-white/90",
+      colorClass: "bg-[#457b77] text-white/90",
     },
-    { id: "g", label: "G", colorClass: "bg-[#be4e46] text-white/90" },
-    { id: "h", label: "H", colorClass: "bg-[#914782] text-white/90" },
+    { id: "g", label: "G", colorClass: "bg-[#457b77] text-white/90" },
+    { id: "h", label: "H", colorClass: "bg-[#555d78] text-white/90" },
     {
       id: "j",
       label: "J",
       hasBump: true,
-      colorClass: "bg-[#914782] text-white/90",
+      colorClass: "bg-[#555d78] text-white/90",
     },
-    { id: "k", label: "K", colorClass: "bg-[#45789f] text-white/90" },
-    { id: "l", label: "L", colorClass: "bg-[#488e7d] text-white/90" },
+    { id: "k", label: "K", colorClass: "bg-[#cf8e3c] text-white/90" },
+    { id: "l", label: "L", colorClass: "bg-[#9db852] text-white/90" },
     {
       id: ";",
       topLabel: ":",
@@ -194,38 +194,38 @@ const KEY_ROWS: KeyDef[][] = [
       colorClass: "bg-[#5b8764] text-white/90",
     },
     {
-      id: "Enter",
-      label: "enter",
+      id: "enter",
+      label: "Enter",
       width: 2.2,
-      colorClass: "bg-[#4e555b] text-white/80 text-[10px]",
+      colorClass: "bg-[#5b8764] text-white/90 text-[10px]",
     },
   ],
   // Row 4
   [
     {
-      id: "ShiftLeft",
-      label: "shift",
+      id: "shiftleft",
+      label: "Shift",
       width: 2.3,
-      colorClass: "bg-[#4e555b] text-white/80 text-[10px]",
+      colorClass: "bg-[#5b8764] text-white/90 text-[10px]",
     },
     { id: "z", label: "Z", colorClass: "bg-[#5b8764] text-white/90" },
     { id: "x", label: "X", colorClass: "bg-[#bfa143] text-white/90" },
     { id: "c", label: "C", colorClass: "bg-[#cf8e3c] text-white/90" },
-    { id: "v", label: "V", colorClass: "bg-[#be4e46] text-white/90" },
-    { id: "b", label: "B", colorClass: "bg-[#be4e46] text-white/90" },
-    { id: "n", label: "N", colorClass: "bg-[#914782] text-white/90" },
-    { id: "m", label: "M", colorClass: "bg-[#914782] text-white/90" },
+    { id: "v", label: "V", colorClass: "bg-[#457b77] text-white/90" },
+    { id: "b", label: "B", colorClass: "bg-[#457b77] text-white/90" },
+    { id: "n", label: "N", colorClass: "bg-[#555d78] text-white/90" },
+    { id: "m", label: "M", colorClass: "bg-[#555d78] text-white/90" },
     {
       id: ",",
       topLabel: "<",
       label: ",",
-      colorClass: "bg-[#45789f] text-white/90",
+      colorClass: "bg-[#cf8e3c] text-white/90",
     },
     {
       id: ".",
       topLabel: ">",
       label: ".",
-      colorClass: "bg-[#488e7d] text-white/90",
+      colorClass: "bg-[#9db852] text-white/90",
     },
     {
       id: "/",
@@ -234,43 +234,43 @@ const KEY_ROWS: KeyDef[][] = [
       colorClass: "bg-[#5b8764] text-white/90",
     },
     {
-      id: "ShiftRight",
-      label: "shift",
+      id: "shiftright",
+      label: "Shift",
       width: 2.7,
-      colorClass: "bg-[#4e555b] text-white/80 text-[10px]",
+      colorClass: "bg-[#5b8764] text-white/90 text-[10px]",
     },
   ],
   // Row 5
   [
     {
-      id: "ControlLeft",
-      label: "ctrl",
+      id: "ctrlleft",
+      label: "Ctrl",
       width: 1.5,
-      colorClass: "bg-[#4e555b] text-white/80 text-[10px]",
+      colorClass: "bg-[#5b8764] text-white/90 text-[10px]",
     },
     {
-      id: "AltLeft",
-      label: "alt",
+      id: "altleft",
+      label: "Alt",
       width: 1.5,
-      colorClass: "bg-[#4e555b] text-white/80 text-[10px]",
+      colorClass: "bg-[#5b8764] text-white/90 text-[10px]",
     },
     {
       id: " ",
-      label: "space",
+      label: "",
       width: 6.8,
-      colorClass: "bg-[#25282c] border border-white/40 text-white/80",
+      colorClass: "bg-[#8b4545] text-white/90",
+    }, // spacebar terracotta
+    {
+      id: "altright",
+      label: "Alt",
+      width: 1.5,
+      colorClass: "bg-[#5b8764] text-white/90 text-[10px]",
     },
     {
-      id: "AltRight",
-      label: "alt",
+      id: "ctrlright",
+      label: "Ctrl",
       width: 1.5,
-      colorClass: "bg-[#4e555b] text-white/80 text-[10px]",
-    },
-    {
-      id: "ControlRight",
-      label: "ctrl",
-      width: 1.5,
-      colorClass: "bg-[#4e555b] text-white/80 text-[10px]",
+      colorClass: "bg-[#5b8764] text-white/90 text-[10px]",
     },
   ],
 ];
@@ -287,14 +287,27 @@ export function KeybrKeyboard(): JSXElement {
   const recalcKeyCenters = () => {
     if (!keyboardContainerRef) return;
     const containerRect = keyboardContainerRef.getBoundingClientRect();
+    if (containerRect.width === 0) return;
     const newCenters = new Map<string, { x: number; y: number }>();
 
     for (const [keyId, el] of keyElementRefs.entries()) {
       if (el !== undefined && el !== null) {
         const rect = el.getBoundingClientRect();
         newCenters.set(keyId, {
-          x: rect.left - containerRect.left + rect.width / 2,
-          y: rect.top - containerRect.top + rect.height / 2,
+          x: Math.max(
+            8,
+            Math.min(
+              containerRect.width - 8,
+              rect.left - containerRect.left + rect.width / 2,
+            ),
+          ),
+          y: Math.max(
+            8,
+            Math.min(
+              containerRect.height - 8,
+              rect.top - containerRect.top + rect.height / 2,
+            ),
+          ),
         });
       }
     }
@@ -406,11 +419,11 @@ export function KeybrKeyboard(): JSXElement {
       ref={(el) => {
         keyboardContainerRef = el;
       }}
-      class="relative mx-auto flex w-full max-w-4xl flex-col items-center gap-1.5 rounded-2xl border border-sub-alt/40 bg-[#1e2023]/95 p-4 font-mono shadow-2xl backdrop-blur-md select-none"
+      class="relative mx-auto flex w-full max-w-4xl flex-col items-center gap-1.5 overflow-hidden rounded-2xl border border-sub-alt/40 bg-[#1e2023]/95 p-4 font-mono shadow-2xl backdrop-blur-md select-none"
     >
-      {/* Dynamic Key Motion Flow SVG Overlay with Lines Drawn Directly Over Keycaps */}
+      {/* Dynamic Key Motion Flow SVG Overlay with Contained Non-Overflowing Lines */}
       <svg
-        class="pointer-events-none absolute inset-0 z-30 h-full w-full overflow-visible"
+        class="pointer-events-none absolute inset-0 z-30 h-full w-full overflow-hidden"
         xmlns="http://www.w3.org/2000/svg"
       >
         <defs>
@@ -456,24 +469,24 @@ export function KeybrKeyboard(): JSXElement {
           </marker>
         </defs>
 
-        {/* Focused Key Ring Matching Screenshot */}
+        {/* Focused Key Blue Ring Matching Official Keybr Screenshot */}
         <Show when={focusPos()}>
           {(pos) => (
             <g class="animate-pulse duration-1000">
               <circle
                 cx={pos().x}
                 cy={pos().y}
-                r="16"
+                r="18"
                 fill="none"
-                stroke="#94a338"
-                style={{ "stroke-width": "3.5" }}
-                opacity="0.9"
+                stroke="#38bdf8"
+                style={{ "stroke-width": "3" }}
+                opacity="0.85"
               ></circle>
             </g>
           )}
         </Show>
 
-        {/* Moving Dynamic Keystroke Transition Arcs with Arrowheads & Kinetic Line Drawing */}
+        {/* Moving Dynamic Keystroke Transition Arcs with Arrowheads & Contained Kinetic Lines */}
         <For each={traceArcs()}>
           {(arc) => (
             <path
@@ -517,11 +530,6 @@ export function KeybrKeyboard(): JSXElement {
                 const hasTopLabel =
                   keyDef.topLabel !== undefined && keyDef.topLabel !== "";
 
-                const isHighlighted = () =>
-                  isFocused() ||
-                  (isIncluded() && (keyStats()?.confidence ?? 0) > 0) ||
-                  (keyDef.id === " " && isIncluded());
-
                 return (
                   <div
                     ref={(el) => {
@@ -537,16 +545,10 @@ export function KeybrKeyboard(): JSXElement {
                       "relative box-border flex h-9.5 items-center justify-center rounded-sm border border-transparent text-[11px] font-semibold shadow-xs transition-[transform,background-color,border-color,box-shadow,filter] duration-75",
                       keyDef.colorClass,
                       hasWidth ? "grow" : "w-9.5",
-                      keyDef.id.length === 1 &&
-                        keyDef.id !== " " &&
-                        !isIncluded() &&
-                        "border-white/10 text-white/30 after:border-white/20 bg-[#25282c] opacity-50 brightness-75 grayscale after:absolute after:inset-0 after:rotate-45 after:border-t-[1.5px]",
                       keyStats()?.isForced &&
                         "decoration-white font-black underline decoration-2",
-                      isHighlighted() &&
-                        "z-10 shadow-[0_0_10px_rgba(232,121,249,0.4)] ring-2 ring-[#e879f9]",
                       isFocused() &&
-                        "z-20 shadow-[0_0_12px_rgba(148,163,56,0.5)] ring-2 ring-[#94a338] brightness-115",
+                        "z-20 ring-2 ring-[#38bdf8] brightness-115",
                       isDepressed() &&
                         "translate-y-0.5 scale-95 shadow-inner brightness-140",
                     )}
