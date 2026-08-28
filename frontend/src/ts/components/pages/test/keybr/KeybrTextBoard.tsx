@@ -100,27 +100,26 @@ export function KeybrTextBoard(): JSXElement {
                     const s = charStatus();
                     if (isCurrent()) {
                       if (s === "error" || hasError()) {
-                        return "text-rose-400 bg-rose-500/20 ring-1 ring-rose-500 rounded px-0.5 font-bold after:absolute after:right-0 after:-bottom-1.5 after:left-0 after:h-[3.5px] after:rounded-full after:bg-rose-500";
+                        return "text-rose-400 bg-rose-500/20 ring-1 ring-rose-500 rounded after:absolute after:right-0 after:-bottom-1 after:left-0 after:h-[3.5px] after:rounded-full after:bg-rose-500";
                       }
-                      return "animate-pulse font-bold text-text after:absolute after:right-0 after:-bottom-1.5 after:left-0 after:h-[3.5px] after:rounded-full after:bg-main after:shadow-sm after:shadow-main/50";
+                      return "text-text after:absolute after:right-0 after:-bottom-1 after:left-0 after:h-[3.5px] after:rounded-full after:bg-main after:shadow-sm after:shadow-main/50";
                     }
                     if (s === "corrected_error" || s === "error") {
-                      // PERMANENT BRIGHT RED
-                      return "text-rose-500 font-black drop-shadow-[0_0_6px_rgba(244,63,94,0.6)]";
+                      return "text-rose-500 drop-shadow-[0_0_6px_rgba(244,63,94,0.6)]";
                     }
                     if (s === "correct") {
-                      return "font-medium text-text";
+                      return "text-text";
                     }
                     if (isRemaining()) {
-                      return "font-normal text-sub/50";
+                      return "text-sub/50";
                     }
-                    return "font-medium text-text";
+                    return "text-text";
                   };
 
                   return (
                     <span
                       class={cn(
-                        "relative inline-flex items-center justify-center px-[1px] transition-all duration-75",
+                        "relative inline-flex items-center justify-center px-[1px] font-medium transition-colors duration-75",
                         charColorClass(),
                       )}
                     >
@@ -139,17 +138,16 @@ export function KeybrTextBoard(): JSXElement {
                   return (
                     <span
                       class={cn(
-                        "relative inline-flex items-center justify-center px-1.5 transition-all duration-75 select-none",
-                        sepStatus() === "corrected_error" &&
-                          "text-rose-500 font-bold",
-                        sepStatus() === "correct" && "font-medium text-text/60",
+                        "relative inline-flex items-center justify-center px-1.5 font-medium transition-colors duration-75 select-none",
+                        sepStatus() === "corrected_error" && "text-rose-500",
+                        sepStatus() === "correct" && "text-text/60",
                         sepStatus() === "pending" &&
                           wordDef.separatorIndex > cursorIndex() &&
-                          "font-normal text-sub/30",
+                          "text-sub/30",
                         isCurrent() &&
                           (hasError()
-                            ? "text-rose-400 bg-rose-500/20 after:bg-rose-500 rounded px-1 font-bold after:absolute after:right-0 after:-bottom-1.5 after:left-0 after:h-[3.5px] after:rounded-full"
-                            : "animate-pulse font-bold text-main after:absolute after:right-0 after:-bottom-1.5 after:left-0 after:h-[3.5px] after:rounded-full after:bg-main after:shadow-sm after:shadow-main/50"),
+                            ? "text-rose-400 bg-rose-500/20 ring-rose-500 after:bg-rose-500 rounded ring-1 after:absolute after:right-0 after:-bottom-1 after:left-0 after:h-[3.5px] after:rounded-full"
+                            : "text-main after:absolute after:right-0 after:-bottom-1 after:left-0 after:h-[3.5px] after:rounded-full after:bg-main after:shadow-sm after:shadow-main/50"),
                       )}
                     >
                       {separatorChar()}

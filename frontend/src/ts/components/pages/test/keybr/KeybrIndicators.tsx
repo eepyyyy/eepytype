@@ -335,15 +335,15 @@ export function KeybrIndicators(): JSXElement {
                   onMouseLeave={handleMouseLeave}
                   title={`Key: ${char.toUpperCase()} (${indicatorState().replace("_", " ")}). Click to toggle inclusion.`}
                   class={cn(
-                    "relative flex h-5 w-5 cursor-pointer items-center justify-center rounded-xs text-[11px] font-bold transition-all duration-100 select-none",
+                    "relative box-border flex h-5 w-5 cursor-pointer items-center justify-center rounded-xs border border-transparent text-[11px] font-bold transition-colors duration-100 select-none",
                     indicatorState() === "not_included" &&
-                      "border-white/5 border bg-[#2b2e33]/90 text-sub/40 after:absolute after:inset-0 after:rotate-45 after:border-t-[1.5px] after:border-sub/50",
+                      "border-white/10 bg-[#2b2e33]/90 text-sub/40 after:absolute after:inset-0 after:rotate-45 after:border-t-[1.5px] after:border-sub/50",
                     indicatorState() === "manually_included" &&
                       "text-white decoration-white font-black underline decoration-2 shadow-xs hover:scale-110",
                     indicatorState() === "increased_frequency" &&
                       "text-white shadow-amber-500/30 ring-amber-400 z-20 font-black shadow-md ring-2 ring-offset-1 ring-offset-[#1e2023] hover:scale-110",
                     indicatorState() === "non_calibrated" &&
-                      "border-white/5 border font-bold text-sub/90 hover:scale-110",
+                      "border-white/10 font-bold text-sub/90 hover:scale-110",
                     (indicatorState() === "calibrated" ||
                       indicatorState() === "lowest_confidence") &&
                       "text-white font-bold shadow-xs hover:scale-110",

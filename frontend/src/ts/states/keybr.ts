@@ -768,7 +768,7 @@ export function handleKeybrInput(event: KeyboardEvent): void {
       timeMs: delta,
       id: ++transitionIdCounter,
     };
-    setRecentTransitions((prev) => [...prev.slice(-30), newTrans]);
+    setRecentTransitions((prev) => [...prev.slice(-12), newTrans]);
   }
 
   const statuses = [...keybrCharStatuses()];

@@ -1,5 +1,4 @@
 import {
-  createEffect,
   createSignal,
   For,
   JSXElement,
@@ -112,7 +111,7 @@ const KEY_ROWS: KeyDef[][] = [
     {
       id: "Backspace",
       label: "Backspace",
-      width: 2.0,
+      width: 1.6,
       colorClass: "bg-[#5b8764] text-white/90 text-[10px]",
     },
   ],
@@ -121,7 +120,7 @@ const KEY_ROWS: KeyDef[][] = [
     {
       id: "Tab",
       label: "Tab",
-      width: 1.5,
+      width: 1.4,
       colorClass: "bg-[#5b8764] text-white/90 text-[10px]",
     },
     { id: "q", label: "Q", colorClass: "bg-[#5b8764] text-white/90" },
@@ -150,7 +149,7 @@ const KEY_ROWS: KeyDef[][] = [
       id: "\\",
       topLabel: "|",
       label: "\\",
-      width: 1.5,
+      width: 1.1,
       colorClass: "bg-[#5b8764] text-white/90",
     },
   ],
@@ -159,7 +158,7 @@ const KEY_ROWS: KeyDef[][] = [
     {
       id: "CapsLock",
       label: "Caps Lock",
-      width: 1.8,
+      width: 1.7,
       colorClass: "bg-[#5b8764] text-white/90 text-[10px]",
     },
     { id: "a", label: "A", colorClass: "bg-[#5b8764] text-white/90" },
@@ -196,7 +195,7 @@ const KEY_ROWS: KeyDef[][] = [
     {
       id: "Enter",
       label: "Enter",
-      width: 2.2,
+      width: 1.9,
       colorClass: "bg-[#5b8764] text-white/90 text-[10px]",
     },
   ],
@@ -205,7 +204,7 @@ const KEY_ROWS: KeyDef[][] = [
     {
       id: "ShiftLeft",
       label: "Shift",
-      width: 2.3,
+      width: 2.2,
       colorClass: "bg-[#5b8764] text-white/90 text-[10px]",
     },
     { id: "z", label: "Z", colorClass: "bg-[#5b8764] text-white/90" },
@@ -236,7 +235,7 @@ const KEY_ROWS: KeyDef[][] = [
     {
       id: "ShiftRight",
       label: "Shift",
-      width: 2.7,
+      width: 2.4,
       colorClass: "bg-[#5b8764] text-white/90 text-[10px]",
     },
   ],
@@ -245,31 +244,31 @@ const KEY_ROWS: KeyDef[][] = [
     {
       id: "ControlLeft",
       label: "Ctrl",
-      width: 1.5,
+      width: 1.3,
       colorClass: "bg-[#5b8764] text-white/90 text-[10px]",
     },
     {
       id: "AltLeft",
       label: "Alt",
-      width: 1.5,
+      width: 1.2,
       colorClass: "bg-[#5b8764] text-white/90 text-[10px]",
     },
     {
       id: " ",
       label: "",
-      width: 6.8,
+      width: 6.2,
       colorClass: "bg-[#8b4545] text-white/90",
     }, // spacebar terracotta
     {
       id: "AltRight",
       label: "Alt",
-      width: 1.5,
+      width: 1.2,
       colorClass: "bg-[#5b8764] text-white/90 text-[10px]",
     },
     {
       id: "ControlRight",
       label: "Ctrl",
-      width: 1.5,
+      width: 1.3,
       colorClass: "bg-[#5b8764] text-white/90 text-[10px]",
     },
   ],
@@ -280,29 +279,27 @@ export function KeybrKeyboard(): JSXElement {
   const keyElementRefs = new Map<string, HTMLElement>();
 
   const [keyCenters, setKeyCenters] = createSignal<
-    Record<string, { x: number; y: number }>
-  >({});
+    Map<string, { x: number; y: number }>
+  >(new Map());
 
   // Recalculate key center coordinates relative to container
   const updateKeyPositions = () => {
     if (containerRef === null) return;
     const cRect = containerRef.getBoundingClientRect();
-    const map: Record<string, { x: number; y: number }> = {};
+    const map = new Map<string, { x: number; y: number }>();
 
     for (const [keyId, el] of keyElementRefs.entries()) {
       if (el !== undefined && el !== null) {
         const kRect = el.getBoundingClientRect();
-        map[keyId] = {
+        map.set(keyId, {
           x: kRect.left - cRect.left + kRect.width / 2,
           y: kRect.top - cRect.top + kRect.height / 2,
-        };
+        });
       }
     }
-    if (map[" "] !== undefined && map["space"] === undefined) {
-      map["space"] = map[" "];
-    }
-    if (map["space"] !== undefined && map[" "] === undefined) {
-      map[" "] = map["space"];
+    const spacePos = map.get(" ");
+    if (spacePos !== undefined) {
+      map.set("space", spacePos);
     }
     setKeyCenters(map);
   };
@@ -323,12 +320,6 @@ export function KeybrKeyboard(): JSXElement {
     });
   });
 
-  createEffect(() => {
-    focusedKey();
-    keyCalibrationMap();
-    setTimeout(updateKeyPositions, 50);
-  });
-
   const renderedArcs = () => {
     const mode = keybrSettings().traceMode ?? "all";
     if (mode === "off") return [];
@@ -337,101 +328,100 @@ export function KeybrKeyboard(): JSXElement {
     const centers = keyCenters();
     const focus = focusedKey().toLowerCase();
 
-    const filtered = transitions.filter((t) => {
-      if (mode === "errors") return t.error;
-      if (mode === "focus") {
-        return (
-          t.fromKey.toLowerCase() === focus || t.toKey.toLowerCase() === focus
-        );
-      }
-      return true;
-    });
+    const arcs: {
+      id: string;
+      d: string;
+      color: string;
+      opacity: number;
+      markerEnd: string;
+      isLatest: boolean;
+    }[] = [];
 
-    const arcs = [];
-    for (let idx = 0; idx < filtered.length; idx++) {
-      const t = filtered[idx];
-      if (!t) continue;
-      const p1 = centers[t.fromKey.toLowerCase()];
-      const p2 = centers[t.toKey.toLowerCase()];
+    for (let i = 0; i < transitions.length; i++) {
+      const tr = transitions[i];
+      if (!tr) continue;
+
+      if (mode === "errors" && !tr.error) continue;
+      if (
+        mode === "focus" &&
+        tr.fromKey.toLowerCase() !== focus &&
+        tr.toKey.toLowerCase() !== focus
+      ) {
+        continue;
+      }
+
+      const p1 = centers.get(tr.fromKey.toLowerCase());
+      const p2 = centers.get(tr.toKey.toLowerCase());
       if (!p1 || !p2) continue;
 
-      const dx = p2.x - p1.x;
-      const dy = p2.y - p1.y;
-      const dist = Math.sqrt(dx * dx + dy * dy) || 1;
-
-      const curvature = Math.min(45, Math.max(16, dist * 0.25));
       const midX = (p1.x + p2.x) / 2;
       const midY = (p1.y + p2.y) / 2;
+      const dx = p2.x - p1.x;
+      const dy = p2.y - p1.y;
+      const dist = Math.sqrt(dx * dx + dy * dy);
 
-      const nx = -dy / dist;
-      const ny = dx / dist;
+      const offsetDist = Math.min(32, dist * 0.28);
+      const ctrlX = midX - (dy / (dist || 1)) * offsetDist;
+      const ctrlY = midY + (dx / (dist || 1)) * offsetDist;
 
-      const sign = ny < 0 ? -1 : 1;
-      const cx = midX + nx * curvature * sign;
-      const cy = midY + ny * curvature * sign - 6;
+      const d = `M ${p1.x} ${p1.y} Q ${ctrlX} ${ctrlY} ${p2.x} ${p2.y}`;
+      const isLatest = i >= transitions.length - 2;
+      const opacity = isLatest
+        ? 0.95
+        : Math.max(0.2, (i + 1) / transitions.length);
 
-      const isRecent = idx >= filtered.length - 6;
-      const opacity = isRecent ? (t.error ? 0.95 : 0.85) : 0.45;
-      const strokeColor = t.error ? "#f43f5e" : "#38bdf8";
+      const color = tr.error ? "#f43f5e" : "#38bdf8";
+      const markerEnd = tr.error ? "url(#arrow-rose)" : "url(#arrow-cyan)";
 
       arcs.push({
-        id: t.id,
-        path: `M ${p1.x.toFixed(1)} ${p1.y.toFixed(1)} Q ${cx.toFixed(1)} ${cy.toFixed(1)} ${p2.x.toFixed(1)} ${p2.y.toFixed(1)}`,
-        strokeColor,
+        id: `${tr.id}-${tr.fromKey}-${tr.toKey}`,
+        d,
+        color,
         opacity,
-        isError: t.error,
-        isRecent,
+        markerEnd,
+        isLatest,
       });
     }
 
     return arcs;
   };
 
-  const focusPos = () => keyCenters()[focusedKey().toLowerCase()];
+  const focusPos = () => keyCenters().get(focusedKey().toLowerCase());
 
   return (
     <div
       ref={(el) => {
         containerRef = el;
       }}
-      class="relative mx-auto flex w-full max-w-4xl flex-col items-center gap-1.5 rounded-2xl border border-sub-alt/40 bg-[#1e2023]/95 p-4 font-mono shadow-2xl backdrop-blur-md select-none"
+      class="relative mx-auto flex w-full max-w-4xl flex-col items-center gap-1 rounded-xl border border-sub-alt/40 bg-[#1e2023]/95 p-3 font-mono shadow-2xl backdrop-blur-md select-none"
     >
-      {/* Dynamic Key Motion Flow SVG Overlay with Moving Dash Animation */}
+      {/* Dynamic Key Motion Flow SVG Overlay with Kinetic Line-Drawing Animation */}
       <svg
-        class="pointer-events-none absolute inset-0 z-20 h-full w-full overflow-visible"
+        class="pointer-events-none absolute inset-0 z-30 h-full w-full overflow-visible"
         xmlns="http://www.w3.org/2000/svg"
       >
         <defs>
           <style>
             {`
-              @keyframes keybrArcMovingFlow {
-                from {
-                  stroke-dashoffset: 24;
+              @keyframes keybrDrawArc {
+                0% {
+                  stroke-dashoffset: 200;
+                  opacity: 0.2;
                 }
-                to {
+                60% {
+                  opacity: 1;
+                }
+                100% {
                   stroke-dashoffset: 0;
                 }
               }
-              .keybr-flowing-arc {
-                animation: keybrArcMovingFlow 0.9s linear infinite;
+              .keybr-arc-animate {
+                stroke-dasharray: 200;
+                stroke-dashoffset: 0;
+                animation: keybrDrawArc 0.24s cubic-bezier(0.16, 1, 0.3, 1) forwards;
               }
             `}
           </style>
-
-          <radialGradient id="focusGlow" cx="50%" cy="50%" r="50%">
-            <stop
-              offset="0%"
-              style={{ "stop-color": "#38bdf8", "stop-opacity": "0.6" }}
-            ></stop>
-            <stop
-              offset="80%"
-              style={{ "stop-color": "#38bdf8", "stop-opacity": "0.15" }}
-            ></stop>
-            <stop
-              offset="100%"
-              style={{ "stop-color": "#38bdf8", "stop-opacity": "0" }}
-            ></stop>
-          </radialGradient>
 
           {/* Arrowhead markers */}
           <marker
@@ -439,8 +429,8 @@ export function KeybrKeyboard(): JSXElement {
             viewBox="0 0 10 10"
             refX="7"
             refY="5"
-            markerWidth="6"
-            markerHeight="6"
+            markerWidth="5"
+            markerHeight="5"
             orient="auto-start-reverse"
           >
             <path d="M 0 1.5 L 8 5 L 0 8.5 z" fill="#38bdf8"></path>
@@ -450,8 +440,8 @@ export function KeybrKeyboard(): JSXElement {
             viewBox="0 0 10 10"
             refX="7"
             refY="5"
-            markerWidth="6"
-            markerHeight="6"
+            markerWidth="5"
+            markerHeight="5"
             orient="auto-start-reverse"
           >
             <path d="M 0 1.5 L 8 5 L 0 8.5 z" fill="#f43f5e"></path>
@@ -475,22 +465,24 @@ export function KeybrKeyboard(): JSXElement {
           )}
         </Show>
 
-        {/* Moving Dynamic Keystroke Transition Arcs with Arrowheads */}
+        {/* Moving Dynamic Keystroke Transition Arcs with Arrowheads & Kinetic Line Drawing */}
         <For each={renderedArcs()}>
           {(arc) => (
             <path
-              d={arc.path}
+              d={arc.d}
               fill="none"
-              stroke={arc.strokeColor}
+              stroke={arc.color}
               style={{
-                "stroke-width": arc.isRecent ? "2.2px" : "1.6px",
-                "stroke-dasharray": "8 4",
-                "marker-end": arc.isError
-                  ? "url(#arrow-rose)"
-                  : "url(#arrow-cyan)",
+                "stroke-width": arc.isLatest ? "2.5" : "2.0",
+                "stroke-linecap": "round",
+                "stroke-dasharray": "6,3",
+                "marker-end": arc.markerEnd,
               }}
               opacity={arc.opacity}
-              class="keybr-flowing-arc transition-opacity duration-300"
+              class={cn(
+                "transition-opacity duration-200",
+                arc.isLatest && "keybr-arc-animate",
+              )}
             ></path>
           )}
         </For>
@@ -498,7 +490,7 @@ export function KeybrKeyboard(): JSXElement {
 
       <For each={KEY_ROWS}>
         {(row) => (
-          <div class="flex w-full justify-center gap-1">
+          <div class="flex w-full gap-1">
             <For each={row}>
               {(keyDef) => {
                 const lowerId = keyDef.id.toLowerCase();
@@ -535,13 +527,13 @@ export function KeybrKeyboard(): JSXElement {
                       }
                     }}
                     class={cn(
-                      "relative flex h-9.5 items-center justify-center rounded-sm text-[11px] font-semibold shadow-xs transition-all duration-75",
+                      "relative box-border flex h-8.5 items-center justify-center rounded-sm border border-transparent text-[10px] font-bold shadow-xs transition-[transform,background-color,border-color,box-shadow,filter] duration-75",
                       keyDef.colorClass,
-                      hasWidth ? "grow" : "w-9.5",
+                      hasWidth ? "grow" : "w-8.5",
                       keyDef.id.length === 1 &&
                         keyDef.id !== " " &&
                         !isIncluded() &&
-                        "border-white/5 text-white/30 after:border-white/20 border bg-[#25282c] opacity-40 brightness-65 grayscale after:absolute after:inset-0 after:rotate-45 after:border-t-[1.5px]",
+                        "border-white/10 text-white/30 after:border-white/20 bg-[#25282c] opacity-40 brightness-65 grayscale after:absolute after:inset-0 after:rotate-45 after:border-t-[1.5px]",
                       keyStats()?.isForced &&
                         "decoration-white font-black underline decoration-2",
                       isHighlighted() &&
@@ -555,12 +547,12 @@ export function KeybrKeyboard(): JSXElement {
                       "flex-grow": keyDef.width ?? 1,
                       "max-width":
                         hasWidth && keyDef.width !== undefined
-                          ? `${keyDef.width * 2.6}rem`
-                          : "2.6rem",
+                          ? `${keyDef.width * 2.5}rem`
+                          : "2.5rem",
                     }}
                   >
                     <Show when={hasTopLabel}>
-                      <span class="absolute top-0.5 left-1 text-[9px] font-normal opacity-75">
+                      <span class="absolute top-0.5 left-1 text-[8px] font-normal opacity-75">
                         {keyDef.topLabel}
                       </span>
                     </Show>
@@ -589,13 +581,13 @@ export function KeybrKeyboard(): JSXElement {
 
                     {/* Homing bump */}
                     <Show when={keyDef.hasBump === true}>
-                      <div class="bg-white/70 absolute bottom-1 h-0.5 w-2 rounded-full"></div>
+                      <div class="bg-white/70 absolute bottom-0.5 h-0.5 w-2 rounded-full"></div>
                     </Show>
 
                     {/* Keybr Split-Circle / Wedge Heatmap Indicator (Hits vs Misses) */}
                     <Show when={isIncluded()}>
                       <div class="pointer-events-none absolute inset-0 flex items-center justify-center overflow-hidden">
-                        <svg viewBox="0 0 32 32" class="h-6.5 w-6.5 opacity-60">
+                        <svg viewBox="0 0 32 32" class="h-5 w-5 opacity-60">
                           {/* Top Semi-Circle / Arc: Hit density */}
                           <path
                             d="M 4 16 A 12 12 0 0 1 28 16 Z"
